@@ -1,0 +1,41 @@
+{
+  "name": "lambda-platform/laravel",
+  "description": "Lambda Platform - Laravel version",
+  "type": "module",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "n0m4dz",
+      "email": "tseegii.it@gmail.com"
+    }
+  ],
+  "minimum-stability": "stable",
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Lambda\\LambdaServiceProvider"
+      ],
+      "aliases": {
+        "Lambda": "Lambda\\Lambda"
+      }
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Lambda\\": "src"
+    }
+  },
+  "require": {
+    "lcobucci/jwt": "^4.1.4",
+    "tymon/jwt-auth": "dev-develop"
+  },
+  "replace": {
+    "lcobucci/jwt": "*"
+  },
+  "repositories": [
+    {
+      "type": "composer",
+      "url": "https://github.com/lambda-platform/lambda-laravel"
+    }
+  ]
+}
