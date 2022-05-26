@@ -1,5 +1,5 @@
 {
-  "name": "lambda-platform/laravel",
+  "name": "lambda-platform/lambda-laravel",
   "description": "Lambda Platform - Laravel version",
   "type": "module",
   "license": "MIT",
@@ -9,14 +9,14 @@
       "email": "tseegii.it@gmail.com"
     }
   ],
-  "minimum-stability": "stable",
+  "minimum-stability": "dev",
   "extra": {
     "laravel": {
       "providers": [
         "Lambda\\LambdaServiceProvider"
       ],
       "aliases": {
-        "Lambda": "Lambda\\Lambda"
+        "Lambda": "Lambda"
       }
     }
   },
@@ -34,5 +34,12 @@
   },
   "replace": {
     "lcobucci/jwt": "*"
-  }
+  },
+  "repositories": [
+    {
+      "packagist": false,
+      "type": "vcs",
+      "url": "https://github.com/lambda-platform/lambda-laravel.git"
+    }
+  ]
 }
