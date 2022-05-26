@@ -34,11 +34,5 @@
   },
   "replace": {
     "lcobucci/jwt": "*"
-  },
-  "repositories": [
-    {
-      "type": "composer",
-      "url": "https://github.com/lambda-platform/lambda-laravel"
-    }
-  ]
+  }
 }
