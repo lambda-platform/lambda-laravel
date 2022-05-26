@@ -27,7 +27,10 @@
   },
   "require": {
     "lcobucci/jwt": "^4.1.4",
-    "tymon/jwt-auth": "dev-develop"
+    "tymon/jwt-auth": "dev-develop",
+    "intervention/image": "^2.5.1",
+    "maatwebsite/excel": "^3.1",
+    "wisembly/elephant.io": "^3.3"
   },
   "replace": {
     "lcobucci/jwt": "*"
