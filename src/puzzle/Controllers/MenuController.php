@@ -1,6 +1,6 @@
 <?php
 
-namespace Lambda\Lambda\Controllers;
+namespace Lambda\Puzzle\Controllers;
 
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;

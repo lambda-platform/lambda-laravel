@@ -11,17 +11,18 @@ class LambdaServiceProvider extends ServiceProvider
         $this->app->singleton(Lambda::class, function () {
             return new Lambda();
         });
-
-        $this->loadViewsFrom(__DIR__ . '/modules/agent/views', 'agent');
-        $this->loadViewsFrom(__DIR__ . '/modules/puzzle/views', 'puzzle');
     }
 
     public function boot()
     {
 
-        include __DIR__.'/modules/puzzle/routes.php';
-        include __DIR__.'/modules/agent/routes.php';
-        include __DIR__.'/modules/krud/routes.php';
+        $this->loadViewsFrom(__DIR__ . '/Agent/views', 'agent');
+        $this->loadViewsFrom(__DIR__ . '/Puzzle/views', 'puzzle');
+        $this->loadViewsFrom(__DIR__ . '/Template/views', 'template');
+
+        $this->loadRoutesFrom(__DIR__ . '/Agent/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Puzzle/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Krud/routes.php');
 
         $this->publishes([
             __DIR__ . '/config/lambda-config.php' => config_path('lambda.php'),

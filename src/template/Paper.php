@@ -1,6 +1,6 @@
 <?php
 
-namespace Lambda\Template\Paper;
+namespace Lambda\Template;
 
 use Illuminate\Support\Facades\Facade;
 

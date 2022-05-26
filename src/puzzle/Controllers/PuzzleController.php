@@ -3,14 +3,13 @@
 namespace Lambda\Puzzle\Controllers;
 
 use App\Http\Controllers\Controller;
-use Auth;
-use Dataform;
-use Datagrid;
-use DataSource;
-use DB;
-use Puzzle;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Lambda\Dataform\Dataform;
+use Lambda\Datagrid\Datagrid;
+use Lambda\DataSource\DataSource;
+use Lambda\Puzzle\Puzzle;
 use Illuminate\Support\Facades\Config;
-
 
 class PuzzleController extends Controller
 {
@@ -44,10 +43,9 @@ class PuzzleController extends Controller
     {
         $qr = DB::table('vb_schemas')->where('type', $type);
 
-        if(strpos($id,'_')===false) {
+        if (strpos($id, '_') === false) {
             $data = $id === false ? $qr->orderBy('created_at', 'desc')->get() : $qr->where('id', $id)->first();
-        }
-        else{
+        } else {
             $qr = DB::table('vb_schemas_admin')->where('type', $type);
             $data = $qr->where('id', $id)->first();
         }
@@ -81,8 +79,7 @@ class PuzzleController extends Controller
                         $schema->ui->schema = $this->setUserCondition($schema->ui->schema, $user_condition);
                         $data->schema = json_encode($schema);
                     }
-                }
-                else{
+                } else {
                     return redirect('auth/login');
                 }
             }
@@ -199,7 +196,8 @@ class PuzzleController extends Controller
         }
     }
 
-    function getKrud($id){
+    function getKrud($id)
+    {
         $krud = DB::table('krud')->where('id', $id)->first();
         return response()->json($krud);
     }

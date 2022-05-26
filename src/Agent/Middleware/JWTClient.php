@@ -4,7 +4,6 @@ namespace Lambda\Agent\Middleware;
 
 use Closure;
 use http\Exception;
-use Illuminate\Session\TokenMismatchException;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -12,7 +11,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
 use Tymon\JWTAuth\Token;
 
-class JWT extends BaseMiddleware
+class JWTClient extends BaseMiddleware
 {
     /**
      * Handle an incoming request.
@@ -44,7 +43,7 @@ class JWT extends BaseMiddleware
                             'message' => 'Token cannot be refreshed, please Login again'
                         ]);
                     }
-                } else { q
+                } else {
                     $message = 'Authorization Token not found';
                     return response()->json(compact('message'), 404);
                 }

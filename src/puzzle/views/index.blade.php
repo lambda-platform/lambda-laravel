@@ -4,7 +4,7 @@
     <link rel="stylesheet" href="/assets/lambda/fonts/flaticons/flaticons.css">
     <link rel="stylesheet" href="/assets/lambda/fonts/themify/themify-icons.css">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/moqup.css') }}">
-    <link rel="stylesheet" href="{{ mix('assets/lambda/css/report.css') }}">
+{{--    <link rel="stylesheet" href="{{ mix('assets/lambda/css/report.css') }}">--}}
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/dataform.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/datagrid.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/datasource.css') }}">
@@ -43,8 +43,8 @@
     <script src="{{ mix('assets/lambda/js/datagrid.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/datagrid-builder.js') }}"></script>
 
-    <script src="{{ mix('assets/lambda/js/report.js') }}"></script>
-    <script src="{{ mix('assets/lambda/js/report-builder.js') }}"></script>
+{{--    <script src="{{ mix('assets/lambda/js/report.js') }}"></script>--}}
+{{--    <script src="{{ mix('assets/lambda/js/report-builder.js') }}"></script>--}}
 
     <script src="{{ mix('assets/lambda/js/datasource.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/krud.js') }}"></script>

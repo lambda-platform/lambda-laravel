@@ -3,16 +3,13 @@
 namespace Lambda\Agent\Controllers;
 
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Intervention\Image\Facades\Image;
-use Lambda\Agent\Models\Permission;
-use Lambda\Agent\Models\Role;
-use Lambda\Agent\Models\User;
-use Lambda\Agent\Models\Profile;
-use Lambda\Agent\Request\UserRequest;
+//use Intervention\Image\Facades\Image;
+//use Lambda\Agent\Models\Permission;
+//use Lambda\Agent\Models\Role;
+//use Lambda\Agent\Models\Profile;
+//use Lambda\Agent\Request\UserRequest;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 
 class AgentController extends Controller
 {
