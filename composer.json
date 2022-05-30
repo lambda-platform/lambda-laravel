@@ -1,7 +1,7 @@
 {
   "name": "lambda-platform/lambda-laravel",
   "description": "Lambda Platform - Laravel version",
-  "type": "module",
+  "type": "package",
   "license": "MIT",
   "authors": [
     {
