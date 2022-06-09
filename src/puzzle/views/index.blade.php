@@ -33,6 +33,7 @@
             user_fields:{!! json_encode($user_fields) !!},
             data_form_custom_elements: {!! json_encode(isset(config('lambda')['data_form_custom_elements']) ? config('lambda')['data_form_custom_elements'] : []) !!}
         };
+        window.lambda = {!! json_encode(config('lambda')) !!};
     </script>
 
     <script src="{{ mix('assets/lambda/js/moqup.js') }}"></script>
@@ -50,4 +51,5 @@
     <script src="{{ mix('assets/lambda/js/krud.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/agent.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/puzzle.js') }}"></script>
+
 @endpush
