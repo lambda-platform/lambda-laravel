@@ -21,7 +21,6 @@ class JWT extends BaseMiddleware
      */
     public function handle($request, Closure $next)
     {
-
         $token = str_replace('Bearer ', "", $_COOKIE['token']);
 
         try {
@@ -48,6 +47,7 @@ class JWT extends BaseMiddleware
                 return response()->json(compact('message'), 404);
             }
         }
+
         return $next($request);
     }
 }

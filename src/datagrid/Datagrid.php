@@ -27,7 +27,6 @@ class Datagrid extends Facade
     public function buildSchema($schemaID)
     {
         $this->dbSchema = DB::table('vb_schemas')->where('id', (int)$schemaID)->first();
-
         if (!$this->dbSchema) {
             $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'grid')->where('id', $schemaID)->first();
         }
