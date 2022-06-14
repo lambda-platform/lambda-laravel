@@ -102,7 +102,6 @@ trait DBSchema
                             'extra' => $dcolumn->ORDINAL_POSITION == 1 ? 'auto_increment' : '',
                         ];
                     }
-
                     return $newData;
                 } else {
                     return $data;
@@ -112,20 +111,13 @@ trait DBSchema
             if (env('DB_CONNECTION') == 'pgsql') {
                 $dataname = env('DB_DATABASE');
                 $tableWithSchema = explode('.', $table);
-
                 $tableName = end($tableWithSchema);
-                $tableSchema = $tableWithSchema[0];
-                $qr = "SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$tableSchema' AND TABLE_NAME = '$tableName'";
-                $data = DB::select(DB::raw($qr));
 
+                $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName'"));
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
                         $type = '';
-                        if ($tableName == 'statue') {
-                            dump($dcolumn->column_name);
-                        }
-
                         $newData[] = [
                             'model' => $dcolumn->column_name,
                             'title' => $dcolumn->column_name,
@@ -134,7 +126,6 @@ trait DBSchema
                             'key' => $dcolumn->dtd_identifier == 1 ? 'PRI' : '',
                         ];
                     }
-
                     return $newData;
                 } else {
                     return $data;
