@@ -1,4 +1,4 @@
-@inject('TemplateHelper', 'Lambda\Template\helper\TemplateHelper')
+@inject('TemplateHelper', 'Lambda\Template\Helper\TemplateHelper')
 <html>
 <head>
     <meta charset="UTF-8">
