@@ -2,7 +2,7 @@
 
 Route::namespace('Lambda\Puzzle\Controllers')
     ->prefix('lambda/puzzle')
-    ->middleware(['api'])
+    ->middleware(['api', 'jwt'])
 //    ->middleware(['api'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');
@@ -35,4 +35,9 @@ Route::namespace('Lambda\Puzzle\Controllers')
         //Embed
         $router->get('embed', 'PuzzleController@embed');
         $router->get('/krud/:id', 'PuzzleController@getKrud');
+    });
+
+Route::namespace('Lambda\Puzzle\Controllers')
+    ->group(function ($router) {
+        $router->get('/api/lm/puzzle/schema/{type}/{id?}/{condition?}', 'PuzzleController@getVB');
     });
