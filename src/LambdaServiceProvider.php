@@ -16,9 +16,9 @@ class LambdaServiceProvider extends ServiceProvider
     public function boot()
     {
 
-        $this->loadViewsFrom(__DIR__ . '/Agent/views', 'agent');
-        $this->loadViewsFrom(__DIR__ . '/Puzzle/views', 'puzzle');
-        $this->loadViewsFrom(__DIR__ . '/Template/views', 'template');
+        $this->loadViewsFrom(__DIR__ . '/Agent/Views', 'agent');
+        $this->loadViewsFrom(__DIR__ . '/Puzzle/Views', 'puzzle');
+        $this->loadViewsFrom(__DIR__ . '/Template/Views', 'template');
 
         $this->loadRoutesFrom(__DIR__ . '/Agent/routes.php');
         $this->loadRoutesFrom(__DIR__ . '/Puzzle/routes.php');
