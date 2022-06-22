@@ -21,9 +21,15 @@ class JWT extends BaseMiddleware
      */
     public function handle($request, Closure $next)
     {
-
+        $token = null;
         if (isset($_COOKIE['token'])) {
             $token = str_replace('Bearer ', "", $_COOKIE['token']);
+        }
+        if ($request->header('Authorization')) {
+            $token = str_replace('Bearer ', "", $request->header('Authorization'));
+        }
+
+        if ($token != null) {
             try {
                 JWTAuth::setToken($token)->authenticate();
             } catch (\Exception $e) {
@@ -45,7 +51,7 @@ class JWT extends BaseMiddleware
                     }
                 } else {
                     $message = 'Authorization Token not found';
-                    return response()->json(compact('message'), 404);
+                    return response()->json(compact('message'), 401);
                 }
             }
         }

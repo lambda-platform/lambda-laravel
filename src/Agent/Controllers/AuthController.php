@@ -54,7 +54,8 @@ class AuthController extends Controller
             return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
         } else {
             $meta = $this->respondWithToken($token);
-//            JWTAuth::parseToken()->authenticate();
+            $token = JWTAuth::fromUser(auth()->user());
+
             JWTAuth::setToken($token);
             setcookie("token", $token, time() + 31556926, '/', NULL, 0);
             return response()
