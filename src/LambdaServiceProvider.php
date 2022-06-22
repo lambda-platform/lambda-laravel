@@ -17,12 +17,12 @@ class LambdaServiceProvider extends ServiceProvider
     {
 
         $this->loadViewsFrom(__DIR__ . '/Agent/views', 'agent');
-        $this->loadViewsFrom(__DIR__ . '/puzzle/views', 'puzzle');
-        $this->loadViewsFrom(__DIR__ . '/template/views', 'template');
+        $this->loadViewsFrom(__DIR__ . '/Puzzle/views', 'puzzle');
+        $this->loadViewsFrom(__DIR__ . '/Template/views', 'template');
 
         $this->loadRoutesFrom(__DIR__ . '/Agent/routes.php');
-        $this->loadRoutesFrom(__DIR__ . '/puzzle/routes.php');
-        $this->loadRoutesFrom(__DIR__ . '/krud/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Puzzle/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Krud/routes.php');
 
         $this->publishes([
             __DIR__ . '/config/lambda-config.php' => config_path('lambda.php'),
