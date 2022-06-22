@@ -123,7 +123,7 @@ class Dataform extends Facade
         if(array_key_exists('id', $data) && $data['id'] == null){
             unset($data['id']);
         }
-
+       // dd($qr->toSql());
         $r = $qr->insert($data);
         if ($r) {
             isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();;

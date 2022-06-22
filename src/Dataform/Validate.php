@@ -32,7 +32,8 @@ trait Validate
                 //Setting ID when storing data
                 foreach ($s->schema as $sch) {
                     if ($s->identity == $sch->model) {
-                        if ($sch->extra == '' || $sch->extra == null) {
+
+                        if (isset($sch->extra) &&( $sch->extra == '' || $sch->extra == null)) {
                             $subForm->generateID = true;
                             $subForm->identity = $sch->model;
                         } else {

@@ -126,6 +126,9 @@ class PuzzleController extends Controller
     public function saveVB($type, $id = false)
     {
         $qr = DB::table('vb_schemas');
+        if (strpos($id, '_') !== false) {
+            $qr = DB::table('vb_schemas_admin');
+        }
         $data = [
             'name' => request()->name,
             'type' => $type,

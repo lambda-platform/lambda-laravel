@@ -23,7 +23,7 @@ class JWTClient extends BaseMiddleware
      */
     public function handle($request, Closure $next)
     {
-        if ($_COOKIE['token']) {
+        if (isset($_COOKIE['token']) &&$_COOKIE['token']) {
             $token = str_replace('Bearer ', "", $_COOKIE['token']);
             try {
                 JWTAuth::setToken($token)->authenticate();
