@@ -1,6 +1,6 @@
 <?php
 
-namespace Lambda\Template\helper;
+namespace Lambda\Template\Helper;
 
 use Illuminate\Support\Facades\Config;
 
