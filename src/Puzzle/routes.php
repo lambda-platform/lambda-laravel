@@ -40,4 +40,5 @@ Route::namespace('Lambda\Puzzle\Controllers')
 Route::namespace('Lambda\Puzzle\Controllers')
     ->group(function ($router) {
         $router->get('/api/lm/puzzle/schema/{type}/{id?}/{condition?}', 'PuzzleController@getVB');
+        $router->post('/api/lm/puzzle/get_options', 'PuzzleController@getOptions');
     });
