@@ -259,7 +259,7 @@ class Dataform extends Facade
                     $pdo = DB::connection()->getPdo();
                     $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
                     if ($db_server_v >= '11.0.2100.60') {
-                        $label_column = 'concat(' . $label_column . ')';
+                        $label_column = 'concat(COALESCE(' . $label_column . ',""))';
                     } else {
                         $label_column = '(' . $label_column . ')';
                     }
@@ -270,7 +270,7 @@ class Dataform extends Facade
                 $label_column = '(' . $label_column . ')';
             }
             else{
-                $label_column = 'concat(' . $label_column . ')';
+                $label_column = 'concat(COALESCE(' . $label_column . ',""))';
             }
         } else {
             $label_column = $labels;
