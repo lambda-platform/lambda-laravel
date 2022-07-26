@@ -45,7 +45,6 @@ class Dataform extends Facade
                 if (!$data['status']) {
                     return response()->json($data);
                 }
-
                 return $f->store($data['data'], $data['subforms']);
 
             case 'update':
@@ -89,25 +88,25 @@ class Dataform extends Facade
 
     public function storeSubs($subforms, $parentID, $status)
     {
-        if (count($subforms) > 0) {
-            foreach ($subforms as $sf) {
-                //Custom trigger
-                //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
-                DB::table($sf->model)->where($sf->parent, $parentID)->delete();
+            if (count($subforms) > 0) {
+                foreach ($subforms as $sf) {
+                    //Custom trigger
+                    //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
+                    DB::table($sf->model)->where($sf->parent, $parentID)->delete();
 
-                $subqr = DB::table($sf->model);
-                if ($sf->data && count($sf->data) > 0)
-                    foreach ($sf->data as $sd) {
-                        $sd[$sf->parent] = $parentID;
-                        if ($sf->generateID) {
-                            $sd[$sf->identity] = (string)Uuid::generate();
-                        } else {
-                            unset($sd['id']);
+                    $subqr = DB::table($sf->model);
+                    if ($sf->data && count($sf->data) > 0)
+                        foreach ($sf->data as $sd) {
+                            $sd[$sf->parent] = $parentID;
+                            if ($sf->generateID) {
+                                $sd[$sf->identity] = (string)Uuid::generate();
+                            } else {
+                                unset($sd['id']);
+                            }
+                            $subqr->insert($sd);
                         }
-                        $subqr->insert($sd);
-                    }
+                }
             }
-        }
     }
 
     public function store($data, $subforms)
