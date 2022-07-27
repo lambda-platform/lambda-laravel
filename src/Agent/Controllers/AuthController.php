@@ -44,6 +44,16 @@ class AuthController extends Controller
     public function jwtLogin($credentials)
     {
         try {
+            $config = Config::get('lambda');
+            if(isset($config['user_login_check_active']) && $config['user_login_check_active']==1){
+                $user = DB::table("users")->where('login', $credentials['login'])->first();
+                if(!$user) {
+                    return response()->json(['status' => false, 'error' => 'User Not found'], 401);
+                }
+                if ($user->is_active == null || $user->is_active == 0) {
+                    return response()->json(['status' => false, 'error' => 'Хэрэглэгч баталгаажаагүй байна'], 401);
+                }
+            }
 //            $token = JWTAuth::attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
             $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
         } catch (JWTException $e) {
