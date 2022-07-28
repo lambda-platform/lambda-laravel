@@ -33,12 +33,12 @@ class Dataform extends Facade
         $this->schema = $this->dbSchema->schema;
     }
 
+
     public static function exec($schemaID, $action, $dataID)
     {
 
         $f = new self();
         $f->buildSchema($schemaID);
-
         switch ($action) {
             case 'store':
                 $data = $f->validateFormRequest();
@@ -88,44 +88,79 @@ class Dataform extends Facade
 
     public function storeSubs($subforms, $parentID, $status)
     {
-            if (count($subforms) > 0) {
-                foreach ($subforms as $sf) {
-                    //Custom trigger
-                    //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
-                    DB::table($sf->model)->where($sf->parent, $parentID)->delete();
+        if (count($subforms) > 0) {
+            foreach ($subforms as $sf) {
 
-                    $subqr = DB::table($sf->model);
-                    if ($sf->data && count($sf->data) > 0)
-                        foreach ($sf->data as $sd) {
-                            $sd[$sf->parent] = $parentID;
-                            if ($sf->generateID) {
-                                $sd[$sf->identity] = (string)Uuid::generate();
-                            } else {
-                                unset($sd['id']);
-                            }
-                            $subqr->insert($sd);
+                //$data = $f->validateFormRequest();
+                //Custom trigger
+                //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
+                DB::table($sf->model)->where($sf->parent, $parentID)->delete();
+
+                $subqr = DB::table($sf->model);
+                if ($sf->data && count($sf->data) > 0) {
+                    foreach ($sf->data as $key => $sd) {
+                        $sd[$sf->parent] = $parentID;
+                        if ($sf->generateID) {
+                            $sd[$sf->identity] = (string)Uuid::generate();
+                        } else {
+                            unset($sd['id']);
                         }
+                        //form subform
+                        $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
+                        foreach ($subSubForms as $sForm) {
+                            $sForm->data = $sd[$sForm->model];
+                        }
+                        foreach (array_keys($sd) as $key) {
+                            if (is_array($sd[$key])) {
+                                $array_name = null;
+                                unset($sd[$key]);
+                            };
+                        }
+                        $insert_id = $subqr->insertGetId($sd);
+
+                        if (count($subSubForms) > 0) {
+                            foreach ($subSubForms as $sForm) {
+                                if(count($sForm->data)>0)
+                                {
+                                    if (isset($sForm->generateID) && $sForm->generateID) {
+                                        $sForm->{$sForm->identity} = (string)Uuid::generate();
+                                    } else {
+                                        if(isset($sForm->id))
+                                            unset($sForm->id);
+                                    }
+                                    foreach ($sForm->data as $sFormData)
+                                    {
+                                        $sFormData[$sForm->parent] = $insert_id;
+                                        $SFormSubQr = DB::table($sForm->model);
+                                        $SFormSubQr->insert($sFormData);
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+
             }
+        }
     }
 
     public function store($data, $subforms)
     {
         $data = $this->callTrigger('beforeInsert', $data);
-        if(isset($data->ignore_exec)){
+        if (isset($data->ignore_exec)) {
             return $data->response;
         }
 
         $qr = DB::table($this->dbSchema->model);
 
 //        $r = isset($data['id']) ? $qr->insert($data) : $qr->insertGetId($data);
-        if(array_key_exists('id', $data) && $data['id'] == null){
+        if (array_key_exists('id', $data) && $data['id'] == null) {
             unset($data['id']);
         }
-       // dd($qr->toSql());
+        // dd($qr->toSql());
         $r = $qr->insert($data);
         if ($r) {
-            isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();;
+            isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();
             $this->storeSubs($subforms, $id, 'store');
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
@@ -228,7 +263,6 @@ class Dataform extends Facade
                     } else {
                         $filterWithUser = "" . $userFilter['tableField'] . " = '" . $user[$userFilter["userField"]] . "'";
                     }
-
                 }
             }
         }
@@ -258,18 +292,17 @@ class Dataform extends Facade
                     $pdo = DB::connection()->getPdo();
                     $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
                     if ($db_server_v >= '11.0.2100.60') {
-                        $label_column = 'concat(COALESCE(' . $label_column . ',""))';
+                        $label_column = 'concat(' . $label_column . ')';
                     } else {
                         $label_column = '(' . $label_column . ')';
                     }
                 } else {
                     $label_column = '(' . $label_column . ')';
                 }
-            }elseif(env('DB_CONNECTION') == 'oracle') {
+            } elseif (env('DB_CONNECTION') == 'oracle') {
                 $label_column = '(' . $label_column . ')';
-            }
-            else{
-                $label_column = 'concat(COALESCE(' . $label_column . ',""))';
+            } else {
+                $label_column = 'concat(' . $label_column . ')';
             }
         } else {
             $label_column = $labels;
