@@ -353,8 +353,25 @@ class Dataform extends Facade
         }
 
         //Sorting
-        $sortField = $relObj == false ? request()->sortField : $relObj->sortField;
-        $sortOrder = $relObj == false ? request()->sortOrder : $relObj->sortOrder;
+        $sortField = false;
+        $sortOrder = false;
+
+        if($relObj == false){
+            if(isset(request()->sortField)){
+                $sortField = request()->sortField;
+            }
+
+            if(isset(request()->sortOrder)){
+                $sortOrder = request()->sortOrder;
+            }
+        }else{
+
+            $sortField = isset($relObj->sortField) ? $relObj->sortField : false;
+            $sortOrder = isset($relObj->sortOrder) ? $relObj->sortOrder : false;
+        }
+
+//        $sortField = $relObj == false ? (isset(request()->sortField) ? request()->sortField : false) : $relObj->sortField;
+//        $sortOrder = $relObj == false ? (isset(request()->sortOrder) ? request()->sortOrder : false) : $relObj->sortOrder;
 
         $qr = DB::table($table)->select($value . ' as value');
         if (is_array($labels)) {
