@@ -35,6 +35,14 @@ class User extends Authenticatable implements JWTSubject
 
     public function getJWTCustomClaims()
     {
+        if (config('lambda.jwt_claims')) {
+            $claims = [];
+            foreach (config('lambda.jwt_claims') as $c) {
+                $claims[$c] = $this->{$c};
+            }
+            return $claims;
+        }
+
         return [];
     }
 
