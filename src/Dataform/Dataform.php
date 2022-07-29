@@ -57,10 +57,17 @@ class Dataform extends Facade
 
             case 'edit':
                 $subforms = [];
-
                 foreach ($f->schema as $sch) {
                     if (isset($sch->formType)) {
-                        if ($sch->formType == 'SubForm') {
+                        if ($sch->formType == 'SubForm' && isset($sch->subtype) && $sch->subtype == 'Form') {
+
+                            $item = new \stdClass();
+                            $item->model = $sch->model;
+                            $item->parent = $sch->parent;
+                            $item->subForms = $f->getFormSubTables($sch, $item);
+                            $subforms[] = $item;
+                        } elseif ($sch->formType == 'SubForm') {
+                            //dd($sch);
                             $item = new \stdClass();
                             $item->model = $sch->model;
                             $item->parent = $sch->parent;
@@ -110,26 +117,26 @@ class Dataform extends Facade
                         foreach ($subSubForms as $sForm) {
                             $sForm->data = $sd[$sForm->model];
                         }
+                        //unset all subtables
                         foreach (array_keys($sd) as $key) {
                             if (is_array($sd[$key])) {
                                 $array_name = null;
                                 unset($sd[$key]);
                             };
                         }
+                        //get parent id
                         $insert_id = $subqr->insertGetId($sd);
-
+                        //starting to save subtables
                         if (count($subSubForms) > 0) {
                             foreach ($subSubForms as $sForm) {
-                                if(count($sForm->data)>0)
-                                {
+                                if (count($sForm->data) > 0) {
                                     if (isset($sForm->generateID) && $sForm->generateID) {
                                         $sForm->{$sForm->identity} = (string)Uuid::generate();
                                     } else {
-                                        if(isset($sForm->id))
+                                        if (isset($sForm->id))
                                             unset($sForm->id);
                                     }
-                                    foreach ($sForm->data as $sFormData)
-                                    {
+                                    foreach ($sForm->data as $sFormData) {
                                         $sFormData[$sForm->parent] = $insert_id;
                                         $SFormSubQr = DB::table($sForm->model);
                                         $SFormSubQr->insert($sFormData);
@@ -185,12 +192,69 @@ class Dataform extends Facade
                         $old = DB::table($sf->model)
                             ->where('id', $sd['id'])
                             ->first();
-
+                        //form subform
+                        $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
+                        foreach ($subSubForms as $sForm) {
+                            $sForm->data = $sd[$sForm->model];
+                        }
+                        //unset all subtables
+                        foreach (array_keys($sd) as $key) {
+                            if (is_array($sd[$key])) {
+                                $array_name = null;
+                                unset($sd[$key]);
+                            };
+                        }
                         unset($oldSubData[$old->id]);
                         unset($sd['id']);
                         DB::table($sf->model)
                             ->where('id', $old->id)
                             ->update($sd);
+                        //starting to update subtables data
+                        if (count($subSubForms) > 0) {
+                            //dd($subSubForms);
+                            foreach ($subSubForms as $sForm) {
+                                if (count($sForm->data) > 0) {
+                                    if (isset($sForm->generateID) && $sForm->generateID) {
+                                        $sForm->{$sForm->identity} = (string)Uuid::generate();
+                                    } else {
+                                        if (isset($sForm->id))
+                                            unset($sForm->id);
+                                    }
+                                    //getting old data
+                                    $oldSubFormDatas = DB::table($sForm->model)
+                                        ->where($sForm->parent, $old->id)
+                                        ->pluck('id as val', 'id');
+
+                                    foreach ($sForm->data as $sFormData) {
+                                        $oldSubFormData = DB::table($sForm->model)
+                                            ->where($sForm->parent, $old->id)->first();
+                                        if (isset($sFormData['id'])) {
+                                            //getting old saved data
+                                            if ($oldSubFormData) {
+                                                unset($sFormData['id']);
+                                                $sFormData[$sForm->parent] = $old->id;
+                                                DB::table($sForm->model)->where('id', $oldSubFormData->id)->update($sFormData);
+                                                unset($oldSubFormDatas[$oldSubFormData->id]);
+                                            }
+                                        } else {
+                                            $sFormData[$sForm->parent] = $old->id;
+                                            if ($sForm->generateID) {
+                                                $sFormData[$sForm->identity] = (string)Uuid::generate();
+                                            } else {
+                                                if (env('DB_CONNECTION') == 'sqlsrv') {
+                                                    unset($sFormData['id']);
+                                                }
+                                            }
+                                            DB::table($sForm->model)->insert($sFormData);
+                                        }
+                                    }
+
+                                    foreach ($oldSubFormDatas as $key => $value) {
+                                        DB::table($sForm->model)->where('id', $key)->delete();
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         $sd[$sf->parent] = $parentID;
                         if ($sf->generateID) {
@@ -234,6 +298,14 @@ class Dataform extends Facade
         if ($r) {
             foreach ($submodels as $sub) {
                 $r->{$sub->model} = DB::table($sub->model)->where($sub->parent, $r->{$this->dbSchema->identity})->get();
+                if (isset($sub->subForms)) {
+                    //fetching data
+                    foreach ($r->{$sub->model} as $subFormTableData) {
+                        foreach ($sub->subForms as $subFormTable) {
+                            $subFormTableData->{$subFormTable->model} = DB::table($subFormTable->model)->where($subFormTable->parent, $subFormTableData->id)->get();
+                        }
+                    }
+                }
             }
             return response()->json(['status' => true, 'data' => $r]);
         }
@@ -332,5 +404,40 @@ class Dataform extends Facade
         }
 
         return $options;
+    }
+
+    function getFormSubTables($s)
+    {
+        if (isset($s->formId)) {
+            $localSubForms = [];
+            $subFormDbSchema = \Illuminate\Support\Facades\DB::table('vb_schemas')->where('id', (int)$s->formId)->first();
+            $subFormDbSchema = json_decode($subFormDbSchema->schema);
+            $localSchema = $subFormDbSchema->schema;
+            foreach ($localSchema as $local_s) {
+                if (isset($local_s->formType) && $local_s->formType == 'SubForm') {
+                    // dd($local_s);
+                    $localSubForm = new \stdClass();
+                    $localSubForm->data = null;
+                    $localSubForm->parent = $local_s->parent;
+                    $localSubForm->model = $local_s->model;
+
+                    //Setting ID when storing data
+                    foreach ($local_s->schema as $localSch) {
+                        if ($local_s->identity == $localSch->model) {
+
+                            if (isset($localSch->extra) && ($localSch->extra == '' || $localSch->extra == null)) {
+                                $localSubForm->generateID = true;
+                                $localSubForm->identity = $localSch->model;
+                            } else {
+                                $localSubForm->generateID = false;
+                            }
+                        }
+                    }
+                    array_push($localSubForms, $localSubForm);
+                }
+            }
+            // dd($localSubForms);
+            return $localSubForms;
+        }
     }
 }
