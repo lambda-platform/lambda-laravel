@@ -264,7 +264,52 @@ class Dataform extends Facade
                                 unset($sd['id']);
                             }
                         }
-                        DB::table($sf->model)->insert($sd);
+
+                        //form subform
+                        $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
+
+                        foreach ($subSubForms as $sForm) {
+                            $sForm->data = $sd[$sForm->model];
+                        }
+                        //unset all subtables
+                        foreach (array_keys($sd) as $key) {
+                            if (is_array($sd[$key])) {
+                                $array_name = null;
+                                unset($sd[$key]);
+                            };
+                        }
+                        $insertId=DB::table($sf->model)->insertGetId($sd);
+                        if($insertId)
+                        {
+                            //starting to insert subtables data
+                            if (count($subSubForms) > 0) {
+                                //dd($subSubForms);
+                                foreach ($subSubForms as $sForm) {
+                                    if (count($sForm->data) > 0) {
+                                        if (isset($sForm->generateID) && $sForm->generateID) {
+                                            $sForm->{$sForm->identity} = (string)Uuid::generate();
+                                        } else {
+                                            if (isset($sForm->id))
+                                                unset($sForm->id);
+                                        }
+
+                                        foreach ($sForm->data as $sFormData) {
+
+                                            $sFormData[$sForm->parent] = $insertId;
+                                            if ($sForm->generateID) {
+                                                $sFormData[$sForm->identity] = (string)Uuid::generate();
+                                            } else {
+                                                if (env('DB_CONNECTION') == 'sqlsrv') {
+                                                    unset($sFormData['id']);
+                                                }
+                                            }
+                                            DB::table($sForm->model)->insert($sFormData);
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 foreach ($oldSubData as $key => $value) {
