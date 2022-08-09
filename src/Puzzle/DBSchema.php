@@ -65,7 +65,6 @@ trait DBSchema
                 }
             }
         }
-
         return [
             'tables' => $tables_,
             'views' => $views_,

@@ -23,7 +23,59 @@ trait Validate
         foreach ($this->schema as $s) {
 
             // Sub forms
-            if (isset($s->formType) && $s->formType == 'SubForm') {
+            if (isset($s->formType) && $s->formType == 'SubForm' && isset($s->subtype) && $s->subtype == 'Form') {
+
+                $subForm = new \stdClass();
+                $subForm->data = request()->get($s->model);
+
+                $subForm->parent = $s->parent;
+                $subForm->model = $s->model;
+
+                //Setting ID when storing data
+                foreach ($s->schema as $sch) {
+                    if ($s->identity == $sch->model) {
+
+                        if (isset($sch->extra) && ($sch->extra == '' || $sch->extra == null)) {
+                            $subForm->generateID = true;
+                            $subForm->identity = $sch->model;
+                        } else {
+                            $subForm->generateID = false;
+                        }
+                    }
+                }
+                if (isset($s->formId)) {
+                    $localSubForms = [];
+                    $subFormDbSchema = DB::table('vb_schemas')->where('id', (int)$s->formId)->first();
+                    $subFormDbSchema = json_decode($subFormDbSchema->schema);
+                    $localSchema = $subFormDbSchema->schema;
+                    foreach ($localSchema as $local_s) {
+                        if (isset($local_s->formType) && $local_s->formType == 'SubForm') {
+                            // dd($local_s);
+                            $localSubForm = new \stdClass();
+                            $localSubForm->data = null;
+                            $localSubForm->parent = $local_s->parent;
+                            $localSubForm->model = $local_s->model;
+
+                            //Setting ID when storing data
+                            foreach ($local_s->schema as $localSch) {
+                                if ($local_s->identity == $localSch->model) {
+
+                                    if (isset($localSch->extra) && ($localSch->extra == '' || $localSch->extra == null)) {
+                                        $localSubForm->generateID = true;
+                                        $localSubForm->identity = $localSch->model;
+                                    } else {
+                                        $localSubForm->generateID = false;
+                                    }
+                                }
+                            }
+                            array_push($localSubForms, $localSubForm);
+                        }
+                    }
+                    // dd($localSubForms);
+                    $subForm->subForms=$localSubForms;
+                }
+                array_push($subForms, $subForm);
+            } elseif (isset($s->formType) && $s->formType == 'SubForm') {
                 $subForm = new \stdClass();
                 $subForm->data = request()->get($s->model);
                 $subForm->parent = $s->parent;
@@ -32,7 +84,8 @@ trait Validate
                 //Setting ID when storing data
                 foreach ($s->schema as $sch) {
                     if ($s->identity == $sch->model) {
-                        if ($sch->extra == '' || $sch->extra == null) {
+
+                        if (isset($sch->extra) && ($sch->extra == '' || $sch->extra == null)) {
                             $subForm->generateID = true;
                             $subForm->identity = $sch->model;
                         } else {
@@ -66,15 +119,14 @@ trait Validate
             } elseif (isset($s->formType) && $s->formType == 'Hidden') {
                 if (isset($s->hasUserId) && $s->hasUserId) {
                     //dd(request()->get($s->model));
-                    if(auth()->id()!=null && request()->get($s->model)==null) {
+                    if (auth()->id() != null && request()->get($s->model) == null) {
                         $computedModels[$s->model] = auth()->id();
-                    }
-                    else{
-                        $computedModels[$s->model]=request()->get($s->model);
+                    } else {
+                        $computedModels[$s->model] = request()->get($s->model);
                     }
                 }
             } elseif (isset($s->formType) && ($s->formType == 'Date' || $s->formType == 'DateTime')) {
-                $computedModels[$s->model] =null;
+                $computedModels[$s->model] = null;
                 if (request()->get($s->model))
                     $computedModels[$s->model] = \Carbon\Carbon::parse(request()->get($s->model));
 

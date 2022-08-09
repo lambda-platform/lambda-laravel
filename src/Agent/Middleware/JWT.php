@@ -21,31 +21,38 @@ class JWT extends BaseMiddleware
      */
     public function handle($request, Closure $next)
     {
+        $token = null;
+        if (isset($_COOKIE['token'])) {
+            $token = str_replace('Bearer ', "", $_COOKIE['token']);
+        }
+        if ($request->header('Authorization')) {
+            $token = str_replace('Bearer ', "", $request->header('Authorization'));
+        }
 
-        $token = str_replace('Bearer ', "", $_COOKIE['token']);
-
-        try {
-            JWTAuth::setToken($token)->authenticate();
-        } catch (\Exception $e) {
-            if ($e instanceof TokenInvalidException) {
-                $status = 401;
-                $message = 'This token is invalid. Please Login';
-                return $next($request);
-                //return response()->json(compact('status', 'message'), 401);
-            } else if ($e instanceof TokenExpiredException) {
-                try {
-                    $refreshed = JWTAuth::refresh(JWTAuth::getToken());
-                    JWTAuth::setToken($refreshed)->toUser();
-                    $request->headers->set('Authorization', 'Bearer ' . $refreshed);
-                } catch (JWTException $e) {
-                    return response()->json([
-                        'code' => 103,
-                        'message' => 'Token cannot be refreshed, please Login again'
-                    ]);
+        if ($token != null) {
+            try {
+                JWTAuth::setToken($token)->authenticate();
+            } catch (\Exception $e) {
+                if ($e instanceof TokenInvalidException) {
+                    $status = 401;
+                    $message = 'This token is invalid. Please Login';
+                    return $next($request);
+                    //return response()->json(compact('status', 'message'), 401);
+                } else if ($e instanceof TokenExpiredException) {
+                    try {
+                        $refreshed = JWTAuth::refresh(JWTAuth::getToken());
+                        JWTAuth::setToken($refreshed)->toUser();
+                        $request->headers->set('Authorization', 'Bearer ' . $refreshed);
+                    } catch (JWTException $e) {
+                        return response()->json([
+                            'code' => 103,
+                            'message' => 'Token cannot be refreshed, please Login again'
+                        ]);
+                    }
+                } else {
+                    $message = 'Authorization Token not found';
+                    return response()->json(compact('message'), 401);
                 }
-            } else {
-                $message = 'Authorization Token not found';
-                return response()->json(compact('message'), 404);
             }
         }
         return $next($request);

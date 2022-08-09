@@ -56,7 +56,7 @@ trait FileManager
         }
 
         return [
-            'httpPath' => $uploadDir . $fileName,
+            'httpPath' =>$uploadDir . $fileName,
             'basePath' => $destinationPath,
             'fileName' => $fileName,
         ];
