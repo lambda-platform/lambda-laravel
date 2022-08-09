@@ -9,7 +9,6 @@ Route::namespace('Lambda\Krud\Controllers')
         $router->match(['post', 'POST'], 'update-row/{schema}', 'KrudController@updateRow');
         $router->match(['get', 'post', 'GET', 'POST'], '{schemaId}/{action}/{id?}', 'KrudController@crud');
         $router->match(['delete', 'DELETE'], 'delete/{schema}/{id}', 'KrudController@delete');
-//      $router->post('upload', 'KrudController@fileUpload');
     });
 
 Route::namespace('Lambda\Krud\Controllers')
