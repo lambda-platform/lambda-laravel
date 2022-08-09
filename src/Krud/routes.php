@@ -17,6 +17,7 @@ Route::namespace('Lambda\Krud\Controllers')
     ->middleware(['api'])
     ->group(function ($router) {
         $router->post('upload', 'KrudController@fileUpload');
+        $router->post('upload-tinymce', 'KrudController@fileUploadTinyMce');
         $router->post('unique', 'KrudController@checkUnique');
         $router->post('check_current_password', 'KrudController@checkCurrentPassword');
     });
