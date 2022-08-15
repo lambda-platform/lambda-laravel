@@ -6,6 +6,7 @@ use DB;
 use Illuminate\Support\Facades\Facade;
 use Auth;
 
+
 class Dataform extends Facade
 {
     private $dbSchema;
@@ -171,8 +172,8 @@ class Dataform extends Facade
             $this->storeSubs($subforms, $id, 'store');
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
-
-            $response_data = ['status' => true, 'data' => $data];
+            $cache=$this->cacheClear();
+            $response_data = ['status' => true, 'data' => $data,'cache clear'=>$cache];
             $response_data[$this->dbSchema->identity] = $id;
             return response()->json($response_data);
         }
@@ -331,7 +332,8 @@ class Dataform extends Facade
 
         $this->updateSubs($subforms, $id, 'update');
         $data = $this->callTrigger('afterUpdate', $data, $id);
-        $response_data = ['status' => true, 'data' => $data];
+        $cache=$this->cacheClear();
+        $response_data = ['status' => true, 'data' => $data,'cache clear'=>$cache];
         $response_data[$this->dbSchema->identity] = $id;
         return response()->json($response_data);
     }
