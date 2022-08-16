@@ -183,6 +183,7 @@ class Dataform extends Facade
 
     public function updateSubs($subforms, $parentID, $status)
     {
+
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
                 $oldSubData = DB::table($sf->model)
@@ -198,6 +199,8 @@ class Dataform extends Facade
                         foreach ($subSubForms as $sForm) {
                             $sForm->data = $sd[$sForm->model];
                         }
+
+
                         //unset all subtables
                         foreach (array_keys($sd) as $key) {
                             if (is_array($sd[$key])) {
@@ -205,6 +208,7 @@ class Dataform extends Facade
                                 unset($sd[$key]);
                             };
                         }
+
                         unset($oldSubData[$old->id]);
                         unset($sd['id']);
                         DB::table($sf->model)
@@ -212,30 +216,33 @@ class Dataform extends Facade
                             ->update($sd);
                         //starting to update subtables data
                         if (count($subSubForms) > 0) {
-                            //dd($subSubForms);
+
                             foreach ($subSubForms as $sForm) {
+                                //data baival
                                 if (count($sForm->data) > 0) {
+                                    //dd($sForm->data);
                                     if (isset($sForm->generateID) && $sForm->generateID) {
                                         $sForm->{$sForm->identity} = (string)Uuid::generate();
                                     } else {
                                         if (isset($sForm->id))
                                             unset($sForm->id);
                                     }
+
                                     //getting old data
-                                    $oldSubFormDatas = DB::table($sForm->model)
+                                    $oldSubFormDataIds = DB::table($sForm->model)
                                         ->where($sForm->parent, $old->id)
                                         ->pluck('id as val', 'id');
 
                                     foreach ($sForm->data as $sFormData) {
                                         $oldSubFormData = DB::table($sForm->model)
-                                            ->where($sForm->parent, $old->id)->first();
+                                            ->where('id', $sFormData['id'])->first();
                                         if (isset($sFormData['id'])) {
                                             //getting old saved data
                                             if ($oldSubFormData) {
                                                 unset($sFormData['id']);
                                                 $sFormData[$sForm->parent] = $old->id;
                                                 DB::table($sForm->model)->where('id', $oldSubFormData->id)->update($sFormData);
-                                                unset($oldSubFormDatas[$oldSubFormData->id]);
+                                                unset($oldSubFormDataIds[$oldSubFormData->id]);
                                             }
                                         } else {
                                             $sFormData[$sForm->parent] = $old->id;
@@ -250,7 +257,7 @@ class Dataform extends Facade
                                         }
                                     }
 
-                                    foreach ($oldSubFormDatas as $key => $value) {
+                                    foreach ($oldSubFormDataIds as $key => $value) {
                                         DB::table($sForm->model)->where('id', $key)->delete();
                                     }
                                 }
