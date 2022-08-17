@@ -234,9 +234,9 @@ class Dataform extends Facade
                                         ->pluck('id as val', 'id');
 
                                     foreach ($sForm->data as $sFormData) {
-                                        $oldSubFormData = DB::table($sForm->model)
-                                            ->where('id', $sFormData['id'])->first();
                                         if (isset($sFormData['id'])) {
+                                            $oldSubFormData = DB::table($sForm->model)
+                                                ->where('id', $sFormData['id'])->first();
                                             //getting old saved data
                                             if ($oldSubFormData) {
                                                 unset($sFormData['id']);
