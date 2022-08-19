@@ -17,6 +17,7 @@ class Dataform extends Facade
     use Validate;
     use Utils;
     use CustomUtils;
+    use FormEmail;
 
     public function __construct()
     {
@@ -37,7 +38,6 @@ class Dataform extends Facade
 
     public static function exec($schemaID, $action, $dataID)
     {
-
         $f = new self();
         $f->buildSchema($schemaID);
         switch ($action) {
@@ -158,13 +158,13 @@ class Dataform extends Facade
         if (isset($data->ignore_exec)) {
             return $data->response;
         }
-
         $qr = DB::table($this->dbSchema->model);
 
 //        $r = isset($data['id']) ? $qr->insert($data) : $qr->insertGetId($data);
         if (array_key_exists('id', $data) && $data['id'] == null) {
             unset($data['id']);
         }
+
         // dd($qr->toSql());
         $r = $qr->insert($data);
         if ($r) {
@@ -172,8 +172,10 @@ class Dataform extends Facade
             $this->storeSubs($subforms, $id, 'store');
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
-            $cache=$this->cacheClear();
-            $response_data = ['status' => true, 'data' => $data,'cache clear'=>$cache];
+            $cache = $this->cacheClear();
+            $this->sendEmail($data, $this->dbSchema);
+
+            $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
             $response_data[$this->dbSchema->identity] = $id;
             return response()->json($response_data);
         }
@@ -286,9 +288,8 @@ class Dataform extends Facade
                                 unset($sd[$key]);
                             };
                         }
-                        $insertId=DB::table($sf->model)->insertGetId($sd);
-                        if($insertId)
-                        {
+                        $insertId = DB::table($sf->model)->insertGetId($sd);
+                        if ($insertId) {
                             //starting to insert subtables data
                             if (count($subSubForms) > 0) {
                                 //dd($subSubForms);
@@ -339,8 +340,8 @@ class Dataform extends Facade
 
         $this->updateSubs($subforms, $id, 'update');
         $data = $this->callTrigger('afterUpdate', $data, $id);
-        $cache=$this->cacheClear();
-        $response_data = ['status' => true, 'data' => $data,'cache clear'=>$cache];
+        $cache = $this->cacheClear();
+        $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
         $response_data[$this->dbSchema->identity] = $id;
         return response()->json($response_data);
     }
@@ -410,15 +411,15 @@ class Dataform extends Facade
         $sortField = false;
         $sortOrder = false;
 
-        if($relObj == false){
-            if(isset(request()->sortField)){
+        if ($relObj == false) {
+            if (isset(request()->sortField)) {
                 $sortField = request()->sortField;
             }
 
-            if(isset(request()->sortOrder)){
+            if (isset(request()->sortOrder)) {
                 $sortOrder = request()->sortOrder;
             }
-        }else{
+        } else {
 
             $sortField = isset($relObj->sortField) ? $relObj->sortField : false;
             $sortOrder = isset($relObj->sortOrder) ? $relObj->sortOrder : false;

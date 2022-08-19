@@ -35,9 +35,10 @@ class KrudController extends Controller
     {
         return Dataform::upload();
     }
+
     public function fileUploadTinyMce()
     {
-        return response()->json(["location"=> Dataform::upload()]);
+        return response()->json(["location" => Dataform::upload()]);
     }
 
     public function checkUnique()
