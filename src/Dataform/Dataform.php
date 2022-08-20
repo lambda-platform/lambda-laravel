@@ -173,7 +173,7 @@ class Dataform extends Facade
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
             $cache = $this->cacheClear();
-//            $this->sendEmail($data, $this->dbSchema);
+            $this->sendEmail($data, $this->dbSchema);
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
             $response_data[$this->dbSchema->identity] = $id;
