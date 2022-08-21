@@ -114,29 +114,28 @@ trait Utils
             //do
             try {
                 if (env('CACHE_BASE_URL') !== null && env('CACHE_BASE_URL') !== ''
-                    && env('CACHE_AUTH_USERNAME') !== null && env('CACHE_AUTH_USERNAME') !== ''
+                    &&env('CACHE_AUTH_USERNAME') !== null && env('CACHE_AUTH_USERNAME') !== ''
                     && env('CACHE_AUTH_PASSWORD') !== null && env('CACHE_AUTH_PASSWORD') !== '') {
                     $curl = curl_init();
                     curl_setopt_array($curl, array(
-                        CURLOPT_URL => env('CACHE_BASE_URL') . $this->dbSchema->triggers->cache_clear_url,
+                        CURLOPT_URL => env('CACHE_BASE_URL').$this->dbSchema->triggers->cache_clear_url,
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_ENCODING => "",
                         CURLOPT_MAXREDIRS => 10,
                         CURLOPT_TIMEOUT => 0,
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_CUSTOMREQUEST => "POST",
+                        CURLOPT_CUSTOMREQUEST => "GET",
                         CURLOPT_HTTPHEADER => array(
-                            "Authorization: Basic " . base64_encode(env('CACHE_AUTH_USERNAME') . ":" . env('CACHE_AUTH_PASSWORD')),
-                            "Content-Type: application/json",
+                            "Authorization: Basic " . base64_encode(env('CACHE_AUTH_USERNAME') . ":" . env('CACHE_AUTH_PASSWORD'))
                         ),
                     ));
 
-                    $qpayResLogin = json_decode(curl_exec($curl));
+                    $qpayResLogin = curl_exec($curl);
                     curl_close($curl);
                     if ($qpayResLogin == null)
                         return 0;
-                    return 1;
+                    return $qpayResLogin;
                 }
             } catch (\Exception $ex) {
                 return $ex->getMessage();
