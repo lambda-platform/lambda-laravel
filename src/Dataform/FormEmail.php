@@ -12,7 +12,7 @@ trait FormEmail
 {
     public function sendEmail($data, $schema)
     {
-        if (isset($schema->email)) {
+        if (isset($schema->email) && count($schema->email->to)>0 && $schema->email->subject) {
             $email = $schema->email;
             $to = $email->to;
             $cc = $email->cc;
