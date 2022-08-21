@@ -21,10 +21,8 @@ trait Validate
         $identityModel = null;
 
         foreach ($this->schema as $s) {
-
             // Sub forms
             if (isset($s->formType) && $s->formType == 'SubForm' && isset($s->subtype) && $s->subtype == 'Form') {
-
                 $subForm = new \stdClass();
                 $subForm->data = request()->get($s->model);
 
@@ -72,7 +70,7 @@ trait Validate
                         }
                     }
                     // dd($localSubForms);
-                    $subForm->subForms=$localSubForms;
+                    $subForm->subForms = $localSubForms;
                 }
                 array_push($subForms, $subForm);
             } elseif (isset($s->formType) && $s->formType == 'SubForm') {

@@ -22,6 +22,7 @@ Route::namespace('Lambda\Krud\Controllers')
     });
 
 Route::namespace('Lambda\Krud\Controllers')
+    ->middleware(['api'])
     ->group(function ($router) {
         $router->post('/api/lm/form/{schemaId}/{action}', 'KrudController@crud');
     });

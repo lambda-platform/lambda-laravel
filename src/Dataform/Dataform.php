@@ -6,10 +6,10 @@ use DB;
 use Illuminate\Support\Facades\Facade;
 use Auth;
 
-
 class Dataform extends Facade
 {
     private $dbSchema;
+    private $stepForms;
     private $schema;
     private $meta;
 
@@ -32,9 +32,9 @@ class Dataform extends Facade
             $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'form')->where('id', $schemaID)->first();
         }
         $this->dbSchema = json_decode($this->dbSchema->schema);
+        $this->stepForms = $this->dbSchema->step->list;
         $this->schema = $this->dbSchema->schema;
     }
-
 
     public static function exec($schemaID, $action, $dataID)
     {
@@ -46,6 +46,7 @@ class Dataform extends Facade
                 if (!$data['status']) {
                     return response()->json($data);
                 }
+
                 return $f->store($data['data'], $data['subforms']);
 
             case 'update':
@@ -98,10 +99,10 @@ class Dataform extends Facade
     {
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
-
                 //$data = $f->validateFormRequest();
                 //Custom trigger
                 //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
+
                 DB::table($sf->model)->where($sf->parent, $parentID)->delete();
 
                 $subqr = DB::table($sf->model);
@@ -147,7 +148,24 @@ class Dataform extends Facade
                         }
                     }
                 }
+            }
+        }
+    }
 
+    public function storeSteps($parentID,)
+    {
+        if (count($this->stepForms) > 0) {
+            foreach ($this->stepForms as $sf) {
+                DB::table($sf->model)->where($sf->parent, $parentID)->delete();
+                $subqr = DB::table($sf->model);
+                $sf->data = request()->get($sf->model);
+
+                if ($sf->data && count($sf->data) > 0) {
+                    foreach ($sf->data as $key => $sd) {
+                        $sd[$sf->parent] = $parentID;
+                        $subqr->insertGetId($sd);
+                    }
+                }
             }
         }
     }
@@ -170,6 +188,8 @@ class Dataform extends Facade
         if ($r) {
             isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();
             $this->storeSubs($subforms, $id, 'store');
+            $this->storeSteps($id);
+
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
             $cache = $this->cacheClear();

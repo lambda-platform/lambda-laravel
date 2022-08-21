@@ -3,7 +3,6 @@
 Route::namespace('Lambda\Puzzle\Controllers')
     ->prefix('lambda/puzzle')
     ->middleware(['api', 'jwt'])
-//    ->middleware(['api'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');
         $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
@@ -42,3 +41,4 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/api/lm/puzzle/schema/{type}/{id?}/{condition?}', 'PuzzleController@getVB');
         $router->post('/api/lm/puzzle/get_options', 'PuzzleController@getOptions');
     });
+
