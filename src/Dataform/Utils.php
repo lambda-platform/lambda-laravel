@@ -112,7 +112,7 @@ trait Utils
 
         if ($this->dbSchema->triggers->cache_clear_url) {
             //do
-            // try {
+             try {
             if (env('CACHE_AUTH_USERNAME') !== null && env('CACHE_AUTH_USERNAME') !== ''
                 && env('CACHE_AUTH_PASSWORD') !== null && env('CACHE_AUTH_PASSWORD') !== '') {
                 $curl = curl_init();
@@ -137,9 +137,9 @@ trait Utils
                     return 0;
                 return $qpayResLogin;
             }
-            // } catch (\Exception $ex) {
-            //     return $ex->getMessage();
-            // }
+             } catch (\Exception $ex) {
+                 return $ex->getMessage();
+             }
         }
         return 0;
     }
