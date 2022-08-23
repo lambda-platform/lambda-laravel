@@ -7,27 +7,10 @@ use Illuminate\Support\Facades\Facade;
 
 class Translation extends Facade
 {
-    public function __construct()
-    {
-
-    }
-
-    public function build()
-    {
-    }
-
-    public function generateJson()
-    {
-
-    }
-
-    public $locales_table = "locales";
-    public $static_words_table = "translation";
-
     static function generateLocale()
     {
-        $locales = DB::table(config('lambda.locale_tbl'))->get();
-        $localeGroup = DB::table('sub_category')->where('parent_id', 16)->get();
+        $locales = DB::table(config('lambda.tr_locale'))->get();
+        $localeComponents = DB::table(config('lambda.tr_components'))->get();
         $i18Path = public_path('i18n') . DIRECTORY_SEPARATOR;
 
         $localeArr = [];
@@ -35,11 +18,11 @@ class Translation extends Facade
             mkdir($i18Path, 0755, true);
         }
 
-        foreach ($localeGroup as $g){
-            $words = DB::table(config('lambda.translation_tbl'))->where('component', $g->id)->get();
+        foreach ($localeComponents as $c) {
+            $words = DB::table(config('lambda.tr_word'))->where('component', $c->id)->get();
             foreach ($words as $w) {
                 foreach ($locales as $l) {
-                    $localeArr[$l->lang_code][$g->title_en][$w->key] = $w->{$l->lang_code};
+                    $localeArr[$l->lang_code][$c->code][$w->key] = $w->{$l->lang_code};
                 }
             }
         }
