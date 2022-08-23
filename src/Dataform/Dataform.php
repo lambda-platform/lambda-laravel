@@ -32,7 +32,10 @@ class Dataform extends Facade
             $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'form')->where('id', $schemaID)->first();
         }
         $this->dbSchema = json_decode($this->dbSchema->schema);
-        $this->stepForms = $this->dbSchema->step->list;
+
+        if(isset($this->dbSchema->step)) {
+            $this->stepForms = $this->dbSchema->step->list;
+        }
         $this->schema = $this->dbSchema->schema;
     }
 
