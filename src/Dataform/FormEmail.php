@@ -3,16 +3,16 @@
 namespace Lambda\Dataform;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use CURLFile;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use mysql_xdevapi\Exception;
 
 trait FormEmail
 {
     public function sendEmail($data, $schema)
     {
-        if (isset($schema->email) && count($schema->email->to)>0 && $schema->email->subject) {
+        if (isset($schema->email) && count($schema->email->to) > 0 && $schema->email->subject) {
             $email = $schema->email;
             $to = $email->to;
             $cc = $email->cc;
@@ -79,7 +79,28 @@ trait FormEmail
 
                 $response = curl_exec($curl);
                 curl_close($curl);
-            }catch (Exception $e){
+
+                if ($response != false) {
+                    DB::table('public.log_email')->insert([
+                        'to' => $toAddress,
+                        'cc' => $ccAddress,
+                        'subject' => $subject,
+                        'email' => $body,
+                        'is_sent' => true,
+                        'created_at' => Carbon::now()
+                    ]);
+                } else {
+                    DB::table('public.log_email')->insert([
+                        'to' => $toAddress,
+                        'cc' => $ccAddress,
+                        'subject' => $subject,
+                        'email' => $body,
+                        'is_sent' => false,
+                        'created_at' => Carbon::now()
+                    ]);
+                }
+
+            } catch (Exception $e) {
 
             }
         };
