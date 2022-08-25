@@ -155,9 +155,9 @@ class Dataform extends Facade
         }
     }
 
-    public function storeSteps($parentID,)
+    public function storeSteps($parentID)
     {
-        if (count($this->stepForms) > 0) {
+        if (isset($this->stepForms) && count($this->stepForms) > 0) {
             foreach ($this->stepForms as $sf) {
                 DB::table($sf->model)->where($sf->parent, $parentID)->delete();
                 $subqr = DB::table($sf->model);
