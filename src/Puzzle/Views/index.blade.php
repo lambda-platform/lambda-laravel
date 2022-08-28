@@ -51,5 +51,4 @@
     <script src="{{ mix('assets/lambda/js/krud.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/agent.js') }}"></script>
     <script src="{{ mix('assets/lambda/js/puzzle.js') }}"></script>
-
 @endpush

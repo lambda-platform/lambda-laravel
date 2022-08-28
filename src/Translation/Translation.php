@@ -19,7 +19,7 @@ class Translation extends Facade
         }
 
         foreach ($localeComponents as $c) {
-            $words = DB::table(config('lambda.tr_word'))->where('component', $c->id)->get();
+            $words = DB::table(config('lambda.tr_word'))->where('component_id', $c->id)->get();
             foreach ($words as $w) {
                 foreach ($locales as $l) {
                     $localeArr[$l->lang_code][$c->code][$w->key] = $w->{$l->lang_code};
