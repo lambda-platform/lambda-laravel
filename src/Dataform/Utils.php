@@ -117,6 +117,7 @@ trait Utils
                     &&env('CACHE_AUTH_USERNAME') !== null && env('CACHE_AUTH_USERNAME') !== ''
                     && env('CACHE_AUTH_PASSWORD') !== null && env('CACHE_AUTH_PASSWORD') !== '') {
                     $curl = curl_init();
+
                     curl_setopt_array($curl, array(
                         CURLOPT_URL => env('CACHE_BASE_URL').$this->dbSchema->triggers->cache_clear_url,
                         CURLOPT_RETURNTRANSFER => true,
@@ -125,17 +126,24 @@ trait Utils
                         CURLOPT_TIMEOUT => 0,
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                        CURLOPT_SSL_VERIFYHOST=>false,
+                        CURLOPT_SSL_VERIFYPEER=>false,
                         CURLOPT_CUSTOMREQUEST => "GET",
                         CURLOPT_HTTPHEADER => array(
+                            'Content-Type: application/json',
                             "Authorization: Basic " . base64_encode(env('CACHE_AUTH_USERNAME') . ":" . env('CACHE_AUTH_PASSWORD'))
                         ),
                     ));
 
-                    $qpayResLogin = curl_exec($curl);
+                    if( !$result = curl_exec($curl))
+                    {
+                        trigger_error(curl_error($curl));
+                    }
+
                     curl_close($curl);
-                    if ($qpayResLogin == null)
+                    if ($result == null)
                         return 0;
-                    return $qpayResLogin;
+                    return $result;
                 }
             } catch (\Exception $ex) {
                 return $ex->getMessage();
