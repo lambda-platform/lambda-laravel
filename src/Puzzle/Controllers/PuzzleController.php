@@ -11,6 +11,8 @@ use Lambda\DataSource\DataSource;
 use Lambda\Puzzle\Puzzle;
 use Illuminate\Support\Facades\Config;
 
+define('MAX_FILE_LIMIT', 1024 * 1024 * 2);
+
 class PuzzleController extends Controller
 {
     public function index()
@@ -21,6 +23,41 @@ class PuzzleController extends Controller
         $user_fields = $config['user_data_fields'];
 
         return view('puzzle::index', compact('dbSchema', 'gridList', 'user_fields'));
+    }
+
+    public function builder()
+    {
+        return view('puzzle::builder');
+    }
+
+    function sanitizeFileName($file)
+    {
+        //sanitize, remove double dot .. and remove get parameters if any
+//        $file = __DIR__ . '/' . preg_replace('@\?.*$@' , '', preg_replace('@\.{2,}@' , '', preg_replace('@[^\/\\a-zA-Z0-9\-\._]@', '', $file)));
+        $file = preg_replace('@\?.*$@' , '', preg_replace('@\.{2,}@' , '', preg_replace('@[^\/\\a-zA-Z0-9\-\._]@', '', $file)));
+        return public_path('/' . $file);
+    }
+
+    function savePage(){
+        $html = "";
+        if (isset($_POST['startTemplateUrl']) && !empty($_POST['startTemplateUrl']))
+        {
+            $startTemplateUrl = $this->sanitizeFileName($_POST['startTemplateUrl']);
+            $html = file_get_contents($startTemplateUrl);
+        } else if (isset($_POST['html']))
+        {
+            $html = substr($_POST['html'], 0, MAX_FILE_LIMIT);
+        }
+
+        $file = $this->sanitizeFileName($_POST['file']);
+
+        if (file_put_contents($file, $html)) {
+            echo "<strong>Амжилттай хадгалагдлаа</strong> <br/> $file";
+        } else {
+            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
+            echo "Error saving file  $file\nPossible causes are missing write permission or incorrect file path!";
+        }
+
     }
 
     public function embed()

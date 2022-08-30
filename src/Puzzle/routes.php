@@ -5,6 +5,8 @@ Route::namespace('Lambda\Puzzle\Controllers')
     ->middleware(['api', 'jwt'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');
+        $router->get('/builder', 'PuzzleController@builder');
+        $router->post('/builder/save', 'PuzzleController@savePage');
         $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
         $router->delete('/delete/{table}/{type}/{id}', 'PuzzleController@deleteVB');
 
