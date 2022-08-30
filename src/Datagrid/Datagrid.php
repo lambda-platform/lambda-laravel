@@ -43,7 +43,12 @@ class Datagrid extends Facade
             } else {
                 if(isset($s->gridType)) {
                     if (($s->gridType == 'Tag') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
-                        $sql = '(SELECT group_concat(' . $s->relation->fields . ') FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (SELECT (SUBSTRING_INDEX(SUBSTRING_INDEX(B.' . $s->model . ", ',', NS.n), ',', -1)) AS tag FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10) NS INNER JOIN " . $this->dbSchema->model . ' B ON NS.n <= CHAR_LENGTH(B.' . $s->model . ') - CHAR_LENGTH(REPLACE(B.' . $s->model . ", ',', '')) + 1 WHERE B." . $s->relation->key . "=" . $this->dbSchema->model . '.' . $s->relation->key . ')) as ' . $s->model;
+
+                        if (env('DB_CONNECTION') == 'pgsql'){
+                            $sql = '(select ARRAY_TO_STRING(ARRAY_AGG(' . $s->relation->fields . ' ORDER BY '.$s->relation->fields.'),\', \') FROM ' . $s->relation->table . ' WHERE STRING_TO_ARRAY(' . $s->relation->key . '::VARCHAR,\',\') && STRING_TO_ARRAY(' .  $s->model . ',\',\')) as ' . $s->model;
+                        }else {
+                            $sql = '(SELECT group_concat(' . $s->relation->fields . ') FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (SELECT (SUBSTRING_INDEX(SUBSTRING_INDEX(B.' . $s->model . ", ',', NS.n), ',', -1)) AS tag FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10) NS INNER JOIN " . $this->dbSchema->model . ' B ON NS.n <= CHAR_LENGTH(B.' . $s->model . ') - CHAR_LENGTH(REPLACE(B.' . $s->model . ", ',', '')) + 1 WHERE B." . $s->relation->key . "=" . $this->dbSchema->model . '.' . $s->relation->key . ')) as ' . $s->model;
+                        }
                         $this->qr->addSelect(DB::raw($sql));
                         $this->setExcelHeader($s);
                     }
@@ -117,7 +122,6 @@ class Datagrid extends Facade
             $data = $this->qr->get();
             return $this->callTrigger('afterFetch', $data);
         }
-        //return $this->qr->toSql();
 
         $data = $this->qr->paginate(request()->get('paginate'));
         return $this->callTrigger('afterFetch', $data);
