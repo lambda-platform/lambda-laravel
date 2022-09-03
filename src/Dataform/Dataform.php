@@ -33,7 +33,7 @@ class Dataform extends Facade
         }
         $this->dbSchema = json_decode($this->dbSchema->schema);
 
-        if(isset($this->dbSchema->step)) {
+        if (isset($this->dbSchema->step)) {
             $this->stepForms = $this->dbSchema->step->list;
         }
         $this->schema = $this->dbSchema->schema;
@@ -64,8 +64,6 @@ class Dataform extends Facade
                 $subforms = [];
 
 
-
-                
                 foreach ($f->schema as $sch) {
                     if (isset($sch->formType)) {
                         if ($sch->formType == 'SubForm' && isset($sch->subtype) && $sch->subtype == 'Form') {
@@ -396,6 +394,8 @@ class Dataform extends Facade
 
     public function options($relObj = false)
     {
+//        dd($relObj);
+
         $table = $relObj == false ? request()->table : $relObj->table;
         $value = $relObj == false ? request()->key : $relObj->key;
         $labels = $relObj == false ? request()->fields : $relObj->fields;
@@ -407,7 +407,6 @@ class Dataform extends Facade
         }
 
         $filterWithUser = null;
-
         if (isset($relObj->filterWithUser)) {
             $user = Auth::user()->toArray();
             foreach ($relObj->filterWithUser as $userFilter) {
@@ -490,6 +489,10 @@ class Dataform extends Facade
         }
 
         if ($filter) {
+//            $filterArr = $this->getFilterKeyVal($filter);
+//            if(is_array($filterArr)) {
+//                $qr->where($filterArr[0], $filterArr[1]);
+//            }
             $qr->whereRaw($filter);
         }
 
@@ -503,6 +506,23 @@ class Dataform extends Facade
         }
 
         return $options;
+    }
+
+    function getFilterKeyVal($filter){
+        if(str_contains($filter, 'BETWEEN')) {
+
+        }
+
+        if(str_contains($filter, '=')) {
+            $filterArr = explode("=", $filter);
+        }
+
+        if(str_contains($filter, '!=')) {
+            $filterArr = explode("=", $filter);
+        }
+
+//        dd($filterArr);
+        return $filterArr;
     }
 
     function getFormSubTables($s)

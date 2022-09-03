@@ -137,6 +137,7 @@ class PuzzleController extends Controller
         foreach ($relations as $key => $relation) {
             $data[$key] = $f->options((object)$relation);
         }
+
         return $data;
     }
 
