@@ -6,6 +6,7 @@ Route::namespace('Lambda\Krud\Controllers')
     ->group(function ($router) {
         $router->any('excel/{schema}', 'KrudController@excel');
         $router->any('print/{schema}', 'KrudController@print');
+        $router->post('import-excel', 'KrudController@excelImport');
         $router->match(['post', 'POST'], 'update-row/{schema}', 'KrudController@updateRow');
         $router->match(['get', 'post', 'GET', 'POST'], '{schemaId}/{action}/{id?}', 'KrudController@crud');
         $router->match(['delete', 'DELETE'], 'delete/{schema}/{id}', 'KrudController@delete');

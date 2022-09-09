@@ -3,6 +3,7 @@
 namespace Lambda\Krud\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Lambda\Dataform\Dataform;
 use Lambda\Datagrid\Datagrid;
 
@@ -59,5 +60,11 @@ class KrudController extends Controller
     public function print($schemaID)
     {
         return Datagrid::exec('print', $schemaID);
+    }
+    public function excelImport(Request $request)
+    {
+        $file=$request->get('excelFile');
+        $schemaID=$request->get('schemaID');
+        return Datagrid::exec('excel-import', $schemaID,$file);
     }
 }
