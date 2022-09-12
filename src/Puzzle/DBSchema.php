@@ -3,7 +3,6 @@
 namespace Lambda\Puzzle;
 
 use DB;
-use Illuminate\Support\Facades\Schema;
 
 trait DBSchema
 {
@@ -48,6 +47,12 @@ trait DBSchema
                     }
                 }
             }
+        } else if (env('DB_CONNECTION') == 'mongodb') {
+            $dbName = DB::connection('mongodb')->getMongoDB()->getDatabaseName();
+            $cursors = DB::connection('mongodb')->getMongoClient()->{$dbName}->listCollections();
+            foreach ($cursors as $collection) {
+                $tables_[] = $collection->getName();
+            }
         } else {
             $tables = DB::select('SHOW FULL TABLES');
             $databaseName = env('DB_DATABASE', 'lambda_db');
@@ -76,13 +81,11 @@ trait DBSchema
      * */
     public static function tableMeta($table)
     {
-        $data = null;
         $data = [];
         try {
             if (env('DB_CONNECTION') == 'sqlsrv') {
                 $dataname = env('DB_DATABASE');
                 $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$table'"));
-
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
@@ -116,7 +119,6 @@ trait DBSchema
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
-                        $type = '';
                         $newData[] = [
                             'model' => $dcolumn->column_name,
                             'title' => $dcolumn->column_name,
@@ -129,6 +131,25 @@ trait DBSchema
                 } else {
                     return $data;
                 }
+                return $data;
+            }
+
+            if (env('DB_CONNECTION') == 'mongodb') {
+                $col = DB::collection($table)->first();
+                if($col){
+                    $newData = [];
+                    foreach ($col as $key => $val){
+                        $newData[] = [
+                            'model' => $key,
+                            'title' => $key,
+                            'dbType' => 'text',
+                            'table' => $table,
+                            'key' => ''
+                        ];
+                    }
+                    return $newData;
+                }
+
                 return $data;
             }
 

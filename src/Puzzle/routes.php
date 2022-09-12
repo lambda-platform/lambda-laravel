@@ -2,7 +2,8 @@
 
 Route::namespace('Lambda\Puzzle\Controllers')
     ->prefix('lambda/puzzle')
-    ->middleware(['api', 'jwt'])
+//    ->middleware(['api', 'jwt'])
+    ->middleware(['api'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');
         $router->get('/builder', 'PuzzleController@builder');

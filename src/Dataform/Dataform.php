@@ -508,16 +508,17 @@ class Dataform extends Facade
         return $options;
     }
 
-    function getFilterKeyVal($filter){
-        if(str_contains($filter, 'BETWEEN')) {
+    function getFilterKeyVal($filter)
+    {
+        if (str_contains($filter, 'BETWEEN')) {
 
         }
 
-        if(str_contains($filter, '=')) {
+        if (str_contains($filter, '=')) {
             $filterArr = explode("=", $filter);
         }
 
-        if(str_contains($filter, '!=')) {
+        if (str_contains($filter, '!=')) {
             $filterArr = explode("=", $filter);
         }
 

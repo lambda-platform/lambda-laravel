@@ -31,7 +31,8 @@
     "maatwebsite/excel": "^3.1",
     "wisembly/elephant.io": "^3.3",
     "barryvdh/laravel-dompdf": "2.0.0",
-    "rap2hpoutre/fast-excel": "^3.2"
+    "rap2hpoutre/fast-excel": "^3.2",
+    "jenssegers/mongodb": "^v3.8.5"
   },
   "replace": {
     "lcobucci/jwt": "*"
