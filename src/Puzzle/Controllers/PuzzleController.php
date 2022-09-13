@@ -143,8 +143,8 @@ class PuzzleController extends Controller
 
     public function setUserCondition($schema_ui, $use_condition)
     {
-        foreach ($schema_ui as &$ui) {
-            if ($ui->type == 'form') {
+        foreach ($schema_ui as $ui) {
+            if (isset($ui->type) && $ui->type == 'form') {
                 foreach ($use_condition as $key => $value) {
                     if ($ui->model == $key) {
                         $ui->default = $value;
