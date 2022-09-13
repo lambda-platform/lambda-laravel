@@ -61,10 +61,11 @@ class KrudController extends Controller
     {
         return Datagrid::exec('print', $schemaID);
     }
+
     public function excelImport(Request $request)
     {
-        $file=$request->get('excelFile');
-        $schemaID=$request->get('schemaID');
-        return Datagrid::exec('excel-import', $schemaID,$file);
+        $file = $request->get('excelFile');
+        $schemaID = $request->get('schemaID');
+        return Datagrid::exec('excel-import', $schemaID, $file);
     }
 }
