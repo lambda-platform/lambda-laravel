@@ -489,15 +489,12 @@ class Dataform extends Facade
         }
 
         if ($filter) {
-//            $filterArr = $this->getFilterKeyVal($filter);
-//            if(is_array($filterArr)) {
-//                $qr->where($filterArr[0], $filterArr[1]);
-//            }
-            $qr->whereRaw($filter);
+            $this->restrictInjection($qr, $filter);
         }
 
         if ($filterWithUser) {
-            $qr->whereRaw($filterWithUser);
+//            $qr->whereRaw($filterWithUser);
+            $this->restrictInjection($qr, $filterWithUser);
         }
 
         $options = $qr->get();
@@ -508,22 +505,74 @@ class Dataform extends Facade
         return $options;
     }
 
-    function getFilterKeyVal($filter)
+    function restrictInjection($qr, $filter)
     {
-        if (str_contains($filter, 'BETWEEN')) {
-
-        }
-
-        if (str_contains($filter, '=')) {
+        if (str_contains($filter, '=') && !str_contains($filter, '!=') && !str_contains($filter, '<=') && !str_contains($filter, '>=')) {
             $filterArr = explode("=", $filter);
+            $qr->where(trim($filterArr[0]), '=', $filterArr[1]);
         }
 
         if (str_contains($filter, '!=')) {
-            $filterArr = explode("=", $filter);
+            $filterArr = explode("!=", $filter);
+            $qr->where(trim($filterArr[0]), '!=', $filterArr[1]);
         }
 
-//        dd($filterArr);
-        return $filterArr;
+        if (str_contains($filter, 'IN')) {
+            $filterArr = explode("IN", $filter);
+            $val = str_replace('(', '', $filterArr[1]);
+            $val = str_replace(')', '', $val);
+            $qr->whereRaw(trim($filterArr[0]) . ' IN (?)', $val);
+        }
+
+        if (str_contains($filter, 'NOT IN')) {
+            $filterArr = explode("NOT IN", $filter);
+            $val = str_replace('(', '', $filterArr[1]);
+            $val = str_replace(')', '', $val);
+            $qr->whereRaw(trim($filterArr[0]) . ' NOT IN (?)', $val);
+        }
+
+
+        if (str_contains($filter, '<') && !str_contains($filter, '<=')) {
+            $filterArr = explode("<", $filter);
+            $qr->where(trim($filterArr[0]), '<', $filterArr[1]);
+        }
+
+        if (str_contains($filter, '<=')) {
+            $filterArr = explode("<=", $filter);
+            $qr->where(trim($filterArr[0]), '<=', $filterArr[1]);
+        }
+
+        if (str_contains($filter, '>') && !str_contains($filter, '>=')) {
+            $filterArr = explode(">", $filter);
+            $qr->where(trim($filterArr[0]), '>', $filterArr[1]);
+        }
+
+        if (str_contains($filter, '>=')) {
+            $filterArr = explode(">=", $filter);
+            $qr->where(trim($filterArr[0]), '>=', $filterArr[1]);
+        }
+
+        if (str_contains($filter, 'IS NULL')) {
+            $field = str_replace('IS NULL', '', $filter);
+            $qr->whereNull(trim($field));
+        }
+
+        if (str_contains($filter, 'IS NOT NULL')) {
+            $field = str_replace('IS NOT NULL', '', $filter);
+            $qr->whereNotNull(trim($field));
+        }
+
+        if (str_contains($filter, 'BETWEEN') && !str_contains($filter, 'NOT BETWEEN')) {
+            $filterArr = explode("BETWEEN", $filter);
+            $filterArrVal = explode(" AND ", $filterArr[1]);
+            $qr->whereBetween(trim($filterArr[0]), $filterArrVal);
+        }
+
+        if (str_contains($filter, 'NOT BETWEEN')) {
+            $filterArr = explode("NOT BETWEEN", $filter);
+            $filterArrVal = explode(" AND ", $filterArr[1]);
+            $qr->whereNotBetween(trim($filterArr[0]), $filterArrVal);
+        }
     }
 
     function getFormSubTables($s)
