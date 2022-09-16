@@ -55,6 +55,7 @@ class AuthController extends Controller
                 }
             }
 //            $token = JWTAuth::attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
+            // $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addHour()->timestamp]);
             $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addHour()->timestamp]);
         } catch (JWTException $e) {
             return response()->json(['status' => false, 'error' => 'Could not authenticate', 'exception' => $e->getMessage()], 500);
