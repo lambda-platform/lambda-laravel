@@ -55,7 +55,7 @@ class JWT extends BaseMiddleware
                 }
             }
         }
-        if (auth() && (in_array(auth()->user()->role, $roles)|| count($roles)==0)) {
+        if (auth() && auth()->user() && (in_array(auth()->user()->role, $roles)|| count($roles)==0)) {
             return $next($request);
         }
 
@@ -63,9 +63,6 @@ class JWT extends BaseMiddleware
     }
 
     private function unauthorized($message = null){
-        return response()->json([
-            'message' => $message ? $message : 'Та энэ хэсэгт хандах боломжгүй байна',
-            'success' => false
-        ], 401);
+        return redirect('/auth/login');
     }
 }
