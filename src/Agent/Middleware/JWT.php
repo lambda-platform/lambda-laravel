@@ -19,7 +19,7 @@ class JWT extends BaseMiddleware
      *
      * @return mixed
      */
-    public function handle($request, Closure $next)
+    public function handle($request, Closure $next, ...$roles)
     {
         $token = null;
         if (isset($_COOKIE['token'])) {
@@ -55,6 +55,17 @@ class JWT extends BaseMiddleware
                 }
             }
         }
-        return $next($request);
+        if (auth() && (in_array(auth()->user()->role, $roles)|| count($roles)==0)) {
+            return $next($request);
+        }
+
+        return $this->unauthorized();
+    }
+
+    private function unauthorized($message = null){
+        return response()->json([
+            'message' => $message ? $message : 'Та энэ хэсэгт хандах боломжгүй байна',
+            'success' => false
+        ], 401);
     }
 }

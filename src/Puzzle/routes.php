@@ -1,9 +1,12 @@
 <?php
 
+use Illuminate\Support\Facades\Config;
+
+$config = Config::get('lambda');
 Route::namespace('Lambda\Puzzle\Controllers')
     ->prefix('lambda/puzzle')
-//    ->middleware(['api', 'jwt'])
-    ->middleware(['api'])
+    ->middleware(['api', $config['lambda_access']?'jwt:'.$config['lambda_access']:'jwt'])
+    //->middleware(['api'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');
         $router->get('/builder', 'PuzzleController@builder');
