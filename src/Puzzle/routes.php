@@ -11,8 +11,25 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/', 'PuzzleController@index');
         $router->get('/builder', 'PuzzleController@builder');
         $router->post('/builder/save', 'PuzzleController@savePage');
-        $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
-        $router->delete('/delete/{table}/{type}/{id}', 'PuzzleController@deleteVB');
+
+        //Roles
+        $router->get('roles-menus', 'RolesController@getRolesMenus');
+//        $router->get('deletedroles', 'RolesController@getDeletedRoles');
+        $router->get('get-krud-fields/{id}', 'RolesController@getKrudFields');
+        $router->post('roles/create', 'RolesController@store');
+        $router->post('roles/store/{id}', 'RolesController@update');
+        $router->post('save-role', 'RolesController@saveRole');
+        $router->delete('roles/destroy/{id}', 'RolesController@destroy');
+        $router->get('roles/restore/{id}', 'RolesController@restore');
+        $router->delete('roles/forceDestroy/{id}', 'RolesController@forceDelete');
+    });
+
+
+Route::namespace('Lambda\Puzzle\Controllers')
+    ->prefix('lambda/puzzle')
+    ->middleware(['api', 'jwt'])
+    //->middleware(['api'])
+    ->group(function ($router) {
 
         //Puzzle
         $router->get('/schema/{type}/{id?}/{condition?}', 'PuzzleController@getVB');
@@ -25,17 +42,6 @@ Route::namespace('Lambda\Puzzle\Controllers')
 
         //Get From Options
         $router->post('/get_options', 'PuzzleController@getOptions');
-
-        //Roles
-        $router->get('roles-menus', 'RolesController@getRolesMenus');
-//        $router->get('deletedroles', 'RolesController@getDeletedRoles');
-        $router->get('get-krud-fields/{id}', 'RolesController@getKrudFields');
-        $router->post('roles/create', 'RolesController@store');
-        $router->post('roles/store/{id}', 'RolesController@update');
-        $router->post('save-role', 'RolesController@saveRole');
-        $router->delete('roles/destroy/{id}', 'RolesController@destroy');
-        $router->get('roles/restore/{id}', 'RolesController@restore');
-        $router->delete('roles/forceDestroy/{id}', 'RolesController@forceDelete');
 
         //Embed
         $router->get('embed', 'PuzzleController@embed');
