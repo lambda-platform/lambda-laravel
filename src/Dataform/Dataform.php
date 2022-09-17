@@ -496,8 +496,9 @@ class Dataform extends Facade
 //            $qr->whereRaw($filterWithUser);
             $this->restrictInjection($qr, $filterWithUser);
         }
-
+        //dd($qr->dd());
         $options = $qr->get();
+
         if ($relObj == false) {
             return response()->json($options);
         }
@@ -509,12 +510,12 @@ class Dataform extends Facade
     {
         if (str_contains($filter, '=') && !str_contains($filter, '!=') && !str_contains($filter, '<=') && !str_contains($filter, '>=')) {
             $filterArr = explode("=", $filter);
-            $qr->where(trim($filterArr[0]), '=', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '!=')) {
             $filterArr = explode("!=", $filter);
-            $qr->where(trim($filterArr[0]), '!=', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), '!=', str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, 'IN')) {
@@ -534,22 +535,22 @@ class Dataform extends Facade
 
         if (str_contains($filter, '<') && !str_contains($filter, '<=')) {
             $filterArr = explode("<", $filter);
-            $qr->where(trim($filterArr[0]), '<', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), '<', str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '<=')) {
             $filterArr = explode("<=", $filter);
-            $qr->where(trim($filterArr[0]), '<=', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), '<=', str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '>') && !str_contains($filter, '>=')) {
             $filterArr = explode(">", $filter);
-            $qr->where(trim($filterArr[0]), '>', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), '>', str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '>=')) {
             $filterArr = explode(">=", $filter);
-            $qr->where(trim($filterArr[0]), '>=', $filterArr[1]);
+            $qr->where(trim($filterArr[0]), '>=', str_replace(['"'," ","'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, 'IS NULL')) {
