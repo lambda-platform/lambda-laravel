@@ -2,6 +2,8 @@
 
 namespace Lambda\Dataform;
 
+use Illuminate\Support\Facades\DB;
+
 trait Utils
 {
     //For specific ID
@@ -102,51 +104,50 @@ trait Utils
 
     public function cacheClear()
     {
-        if (!property_exists($this->dbSchema, 'triggers')) {
-            return 0;
-        }
+        if($this->dbSchema->triggers->cache_clear_url) {
+            $config = null;
 
-        if (!property_exists($this->dbSchema->triggers, 'cache_clear_url')) {
-            return 0;
-        }
+            if (env('DB_CONNECTION') == 'pgsql') {
+                $config = DB::table('public.api_config')->where('code', '10011')->first();
+            } else {
+                $config = DB::table('api_config')->where('code', '10011')->first();
+            }
+            //dd($config->url.$this->dbSchema->triggers->cache_clear_url);
+            if ($config) {
+                try {
+                    if ($config->url && $config->auth_username
+                        && $config->auth_pass) {
+                        $curl = curl_init();
 
-        if ($this->dbSchema->triggers->cache_clear_url) {
-            //do
-            try {
-                if (env('CACHE_BASE_URL') !== null && env('CACHE_BASE_URL') !== ''
-                    &&env('CACHE_AUTH_USERNAME') !== null && env('CACHE_AUTH_USERNAME') !== ''
-                    && env('CACHE_AUTH_PASSWORD') !== null && env('CACHE_AUTH_PASSWORD') !== '') {
-                    $curl = curl_init();
+                        curl_setopt_array($curl, array(
+                            CURLOPT_URL => $config->url . $this->dbSchema->triggers->cache_clear_url,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => "",
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_SSL_VERIFYHOST => false,
+                            CURLOPT_SSL_VERIFYPEER => false,
+                            CURLOPT_CUSTOMREQUEST => "GET",
+                            CURLOPT_HTTPHEADER => array(
+                                'Content-Type: application/json',
+                                "Authorization: Basic " . base64_encode($config->auth_username . ":" . $config->auth_pass)
+                            ),
+                        ));
 
-                    curl_setopt_array($curl, array(
-                        CURLOPT_URL => env('CACHE_BASE_URL').$this->dbSchema->triggers->cache_clear_url,
-                        CURLOPT_RETURNTRANSFER => true,
-                        CURLOPT_ENCODING => "",
-                        CURLOPT_MAXREDIRS => 10,
-                        CURLOPT_TIMEOUT => 0,
-                        CURLOPT_FOLLOWLOCATION => true,
-                        CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-                        CURLOPT_SSL_VERIFYHOST=>false,
-                        CURLOPT_SSL_VERIFYPEER=>false,
-                        CURLOPT_CUSTOMREQUEST => "GET",
-                        CURLOPT_HTTPHEADER => array(
-                            'Content-Type: application/json',
-                            "Authorization: Basic " . base64_encode(env('CACHE_AUTH_USERNAME') . ":" . env('CACHE_AUTH_PASSWORD'))
-                        ),
-                    ));
+                        if (!$result = curl_exec($curl)) {
+                            trigger_error(curl_error($curl));
+                        }
 
-                    if( !$result = curl_exec($curl))
-                    {
-                        trigger_error(curl_error($curl));
+                        curl_close($curl);
+                        if ($result == null)
+                            return 0;
+                        return $result;
                     }
-
-                    curl_close($curl);
-                    if ($result == null)
-                        return 0;
-                    return $result;
+                } catch (\Exception $ex) {
+                    return $ex->getMessage();
                 }
-            } catch (\Exception $ex) {
-                return $ex->getMessage();
             }
         }
         return 0;
