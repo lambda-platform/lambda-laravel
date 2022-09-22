@@ -57,8 +57,13 @@ trait FormEmail
             file_put_contents("email.pdf", $pdf->output());
             $attach = new CURLFILE("email.pdf");
             $attach->setPostFilename($email->subject ? $email->subject . '.pdf' : 'attach.pdf');
-
-            $config = DB::table('api_config')->where('code', '10008')->first();
+            $config=null;
+            if (env('DB_CONNECTION') == 'pgsql') {
+                $config = DB::table('public.api_config')->where('code', '10008')->first();
+            }
+            else{
+                $config = DB::table('api_config')->where('code', '10008')->first();
+            }
             if ($config) {
                 $emailUri = $config->url . "?toAddress=" . $toAddress . "&subject=" . $subject . "&body=" . $body . "&ccAddress=" . $ccAddress . "&contentType=text/html;%20charset=UTF-8";
 
