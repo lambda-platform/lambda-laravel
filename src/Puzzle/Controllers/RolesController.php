@@ -124,6 +124,7 @@ class RolesController extends Controller
             'name' => $request['name'],
             'display_name' => $request['display_name'],
             'description' => $request['description'],
+            'extra' => $request['extra'],
 //                'permissions' => $permissions,
         ]);
 
@@ -145,6 +146,7 @@ class RolesController extends Controller
         $role->name = $request->get('name');
         $role->display_name = $request->get('display_name');
         $role->description = $request->get('description');
+        $role->extra = $request->get('extra');
 //        $role->permissions = $permissions;
         if ($role->save()) {
             return response()->json(['status' => true, 'message' => 'Үүрэг амжилттай шинэчлэгдлээ']);
