@@ -104,7 +104,7 @@ trait Utils
 
     public function cacheClear()
     {
-        if($this->dbSchema->triggers->cache_clear_url) {
+        if(isset($this->dbSchema->triggers->cache_clear_url) && $this->dbSchema->triggers->cache_clear_url) {
             $config = null;
 
             if (env('DB_CONNECTION') == 'pgsql') {
