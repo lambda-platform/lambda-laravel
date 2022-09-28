@@ -3,9 +3,10 @@
 use Illuminate\Support\Facades\Config;
 
 $config = Config::get('lambda');
+
 Route::namespace('Lambda\Puzzle\Controllers')
     ->prefix('lambda/puzzle')
-    ->middleware(['api', $config['lambda_access']?'jwt:'.$config['lambda_access']:'jwt'])
+    ->middleware(['api', (isset($config['lambda_access']) && $config['lambda_access']) ? 'jwt:' . $config['lambda_access'] : 'jwt'])
     //->middleware(['api'])
     ->group(function ($router) {
         $router->get('/', 'PuzzleController@index');

@@ -2,9 +2,11 @@
 
 namespace Lambda\Dataform;
 
-use DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Facade;
+use DB;
 use Auth;
+use Illuminate\Support\Facades\Log;
 
 class Dataform extends Facade
 {
@@ -119,6 +121,7 @@ class Dataform extends Facade
                         } else {
                             unset($sd['id']);
                         }
+
                         //form subform
                         $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
                         foreach ($subSubForms as $sForm) {
@@ -159,6 +162,7 @@ class Dataform extends Facade
 
     public function storeSteps($parentID)
     {
+//        dd($stepForms);
         if (isset($this->stepForms) && count($this->stepForms) > 0) {
             foreach ($this->stepForms as $sf) {
                 DB::table($sf->model)->where($sf->parent, $parentID)->delete();
@@ -198,10 +202,14 @@ class Dataform extends Facade
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
             $cache = $this->cacheClear();
-            $this->sendEmail($data, $this->dbSchema);
+
+
+            LOG::debug('ON DISPATCH');
+            FormJob::dispatch($data, $this->dbSchema)->afterResponse();
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
             $response_data[$this->dbSchema->identity] = $id;
+            LOG::debug('RESPONSE: ' . Carbon::now());
             return response()->json($response_data);
         }
 
@@ -510,12 +518,12 @@ class Dataform extends Facade
     {
         if (str_contains($filter, '=') && !str_contains($filter, '!=') && !str_contains($filter, '<=') && !str_contains($filter, '>=')) {
             $filterArr = explode("=", $filter);
-            $qr->where(trim($filterArr[0]), str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '!=')) {
             $filterArr = explode("!=", $filter);
-            $qr->where(trim($filterArr[0]), '!=', str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), '!=', str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, 'IN')) {
@@ -535,22 +543,22 @@ class Dataform extends Facade
 
         if (str_contains($filter, '<') && !str_contains($filter, '<=')) {
             $filterArr = explode("<", $filter);
-            $qr->where(trim($filterArr[0]), '<', str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), '<', str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '<=')) {
             $filterArr = explode("<=", $filter);
-            $qr->where(trim($filterArr[0]), '<=', str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), '<=', str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '>') && !str_contains($filter, '>=')) {
             $filterArr = explode(">", $filter);
-            $qr->where(trim($filterArr[0]), '>', str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), '>', str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, '>=')) {
             $filterArr = explode(">=", $filter);
-            $qr->where(trim($filterArr[0]), '>=', str_replace(['"'," ","'"], "", $filterArr[1]));
+            $qr->where(trim($filterArr[0]), '>=', str_replace(['"', " ", "'"], "", $filterArr[1]));
         }
 
         if (str_contains($filter, 'IS NULL')) {
