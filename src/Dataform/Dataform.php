@@ -205,6 +205,8 @@ class Dataform extends Facade
 
 
             LOG::debug('ON DISPATCH');
+            dd("here");
+            //FormEmail::sendEmail($data,$this->dbSchema);
             FormJob::dispatch($data, $this->dbSchema)->afterResponse();
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
