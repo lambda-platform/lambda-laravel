@@ -457,6 +457,7 @@ class Datagrid extends Facade
                 'deleted_at' => Carbon::now(),
             ]);
             if ($deleted) {
+                $cache = $this->cacheClear();
                 return $this->callTrigger('afterDelete', true, $id);
             } else {
                 return false;
@@ -465,6 +466,7 @@ class Datagrid extends Facade
 
         $deleted = DB::table($table)->where($this->dbSchema->identity, $id)->delete();
         if ($deleted) {
+            $cache = $this->cacheClear();
             return $this->callTrigger('afterDelete', true, $id);
         } else {
             return false;
