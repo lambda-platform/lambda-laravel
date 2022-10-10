@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 use DB;
 use Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class Dataform extends Facade
 {
@@ -464,10 +465,21 @@ class Dataform extends Facade
 //        $sortOrder = $relObj == false ? (isset(request()->sortOrder) ? request()->sortOrder : false) : $relObj->sortOrder;
 
         $qr = DB::table($table)->select($value . ' as value');
+
         if (is_array($labels)) {
-            $label_column = join(",', ',", $labels);
+            $labelsWoInject = [];
+            foreach ($labels as $l) {
+                if (!Schema::hasColumn($table, $l)) {
+                    unset($l);
+                } else {
+                    $labelsWoInject[] = $l;
+                }
+            }
+
+            $label_column = join(",', ',", $labelsWoInject);
+
             if (env('DB_CONNECTION') == 'sqlsrv') {
-                if (count($labels) >= 2) {
+                if (count($labelsWoInject) >= 2) {
                     $pdo = DB::connection()->getPdo();
                     $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
                     if ($db_server_v >= '11.0.2100.60') {
@@ -484,10 +496,15 @@ class Dataform extends Facade
                 $label_column = 'concat(' . $label_column . ')';
             }
         } else {
+            if (!Schema::hasColumn($table, $labels)) {
+                unset($labels);
+            }
             $label_column = $labels;
         }
 
-        $qr->addSelect(DB::raw("$label_column as label"));
+        if ($label_column != "" && $label_column != "concat()") {
+            $qr->addSelect(DB::raw("$label_column as label"));
+        }
 
         if ($parentFieldOfTable) {
             $qr->addSelect($parentFieldOfTable . ' as parent_value');
@@ -505,7 +522,8 @@ class Dataform extends Facade
 //            $qr->whereRaw($filterWithUser);
             $this->restrictInjection($qr, $filterWithUser);
         }
-        //dd($qr->dd());
+
+//        dd($qr->dd());
         $options = $qr->get();
 
         if ($relObj == false) {
