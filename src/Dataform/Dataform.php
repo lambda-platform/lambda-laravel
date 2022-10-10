@@ -466,15 +466,19 @@ class Dataform extends Facade
 
         $qr = DB::table($table)->select($value . ' as value');
         if (is_array($labels)) {
-            foreach ($labels as $l){
+            $labelsWoInject = [];
+            foreach ($labels as $l) {
                 if (!Schema::hasColumn($table, $l)) {
                     unset($l);
+                }else {
+                    $labelsWoInject[] = $l;
                 }
             }
 
-            $label_column = join(",', ',", $labels);
+            $label_column = join(",', ',", $labelsWoInject);
+
             if (env('DB_CONNECTION') == 'sqlsrv') {
-                if (count($labels) >= 2) {
+                if (count($labelsWoInject) >= 2) {
                     $pdo = DB::connection()->getPdo();
                     $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
                     if ($db_server_v >= '11.0.2100.60') {
@@ -491,6 +495,9 @@ class Dataform extends Facade
                 $label_column = 'concat(' . $label_column . ')';
             }
         } else {
+            if (!Schema::hasColumn($table, $labels)) {
+                unset($labels);
+            }
             $label_column = $labels;
         }
 
@@ -512,7 +519,8 @@ class Dataform extends Facade
 //            $qr->whereRaw($filterWithUser);
             $this->restrictInjection($qr, $filterWithUser);
         }
-        //dd($qr->dd());
+
+//        dd($qr->dd());
         $options = $qr->get();
 
         if ($relObj == false) {
