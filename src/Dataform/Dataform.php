@@ -465,12 +465,13 @@ class Dataform extends Facade
 //        $sortOrder = $relObj == false ? (isset(request()->sortOrder) ? request()->sortOrder : false) : $relObj->sortOrder;
 
         $qr = DB::table($table)->select($value . ' as value');
+
         if (is_array($labels)) {
             $labelsWoInject = [];
             foreach ($labels as $l) {
                 if (!Schema::hasColumn($table, $l)) {
                     unset($l);
-                }else {
+                } else {
                     $labelsWoInject[] = $l;
                 }
             }
@@ -501,7 +502,9 @@ class Dataform extends Facade
             $label_column = $labels;
         }
 
-        $qr->addSelect(DB::raw("$label_column as label"));
+        if ($label_column != "" && $label_column != "concat()") {
+            $qr->addSelect(DB::raw("$label_column as label"));
+        }
 
         if ($parentFieldOfTable) {
             $qr->addSelect($parentFieldOfTable . ' as parent_value');
