@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Facade;
 use DB;
 use Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class Dataform extends Facade
 {
@@ -465,6 +466,12 @@ class Dataform extends Facade
 
         $qr = DB::table($table)->select($value . ' as value');
         if (is_array($labels)) {
+            foreach ($labels as $l){
+                if (!Schema::hasColumn($table, $l)) {
+                    unset($l);
+                }
+            }
+
             $label_column = join(",', ',", $labels);
             if (env('DB_CONNECTION') == 'sqlsrv') {
                 if (count($labels) >= 2) {
