@@ -2,20 +2,20 @@
 
 namespace Lambda\Dataform;
 
+use App\Helpers\ConfigHelper;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
-use CURLFile;
 use Mail;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use mysql_xdevapi\Exception;
+use Lambda\Dataform\Helper;
 
 trait FormEmail
 {
     public function sendEmail($data, $schema)
     {
-        Log::debug('SEND EMAIL WORKED: '. Carbon::now());
-        Log::debug('DATA: '. json_encode($schema->email));
+        Log::debug('EMAIL - SEND EMAIL WORKED: ' . Carbon::now());
+        Log::debug('EMAIL - DATA: ' . json_encode($schema->email));
 
         if (isset($schema->email) && count($schema->email->to) > 0 && $schema->email->subject) {
             $email = $schema->email;
@@ -48,28 +48,17 @@ trait FormEmail
             }
 
             $pdfData = mb_convert_encoding(\View::make('puzzle::email', ['body' => $body, 'title' => $email->subject]), 'HTML-ENTITIES', 'UTF-8');
-            $attach_file_name='attach.pdf';
+            $attach_file_name = 'attach.pdf';
             Pdf::loadHTML($pdfData)->setWarnings(false)->save($attach_file_name);
 
             $subject = urlencode($email->subject);
+            Helper\ConfigHelper::setMailConfig();
 
-//            $config = null;
-//            if (env('DB_CONNECTION') == 'pgsql') {
-//                $config = DB::table('public.api_config')->where('code', '10008')->first();
-//            } else {
-//                $config = DB::table('api_config')->where('code', '10008')->first();
-//            }
-
-//            $config = new \stdClass();
-//            $config->url = 'https://192.168.7.101:9150/notification/mail';
-
-            //if ($config)
-            {
-                // $emailUri = $config->url . "?toAddress=" . $toAddress . "&subject=" . $subject . "&body=" . $body . "&ccAddress=" . $ccAddress . "&contentType=text/html;%20charset=UTF-8";
-
+            foreach ($to as $t) {
                 try {
-                    Log::info('START TO SENT EMAIL: ' . Carbon::now());
-                    foreach ($to as $t) {
+                    Log::debug('EMAIL - START TO SEND: ' . $t);
+                    $email = filter_var($t, FILTER_SANITIZE_EMAIL);
+                    if($email &&  filter_var($email, FILTER_VALIDATE_EMAIL)) {
                         Mail::send([], [],
                             function ($message) use ($t, $subject, $ccAddress, $body, $attach_file_name) {
                                 $message->to($t);
@@ -77,12 +66,15 @@ trait FormEmail
                                 $message->setBody($body, 'text/html');
                                 $message->attach($attach_file_name);
                             });
+                        Log::info('EMAIL - DONE: ' . $t);
+                    }else {
+                        Log::error('EMAIL - validation error:' . $t);
                     }
-
                 } catch (Exception $e) {
-                    Log::info('Email error: ' . $e);
+                    Log::error('EMAIL - Email error: ' . $e);
                 }
             }
-        };
+
+        }
     }
 }
