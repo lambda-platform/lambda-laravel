@@ -2,6 +2,8 @@
 
 namespace Lambda\Datagrid;
 
+use Illuminate\Support\Facades\DB;
+
 trait Trigger
 {
     //For specific ID
@@ -64,5 +66,56 @@ trait Trigger
         }
 
         return $qrOrData;
+    }
+
+    public function cacheClear()
+    {
+        if(isset($this->dbSchema->triggers->cacheClearUrl) && $this->dbSchema->triggers->cacheClearUrl)
+        {
+            $config = null;
+
+            if (env('DB_CONNECTION') == 'pgsql') {
+                $config = DB::table('public.api_config')->where('code', '10011')->first();
+            } else {
+                $config = DB::table('api_config')->where('code', '10011')->first();
+            }
+            if ($config) {
+                try {
+                    if ($config->url && $config->auth_username
+                        && $config->auth_pass) {
+                        $curl = curl_init();
+
+                        curl_setopt_array($curl, array(
+                            CURLOPT_URL => $config->url . $this->dbSchema->triggers->cacheClearUrl,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => "",
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_SSL_VERIFYHOST => false,
+                            CURLOPT_SSL_VERIFYPEER => false,
+                            CURLOPT_CUSTOMREQUEST => "GET",
+                            CURLOPT_HTTPHEADER => array(
+                                'Content-Type: application/json',
+                                "Authorization: Basic " . base64_encode($config->auth_username . ":" . $config->auth_pass)
+                            ),
+                        ));
+
+                        if (!$result = curl_exec($curl)) {
+                            trigger_error(curl_error($curl));
+                        }
+
+                        curl_close($curl);
+                        if ($result == null)
+                            return 0;
+                        return $result;
+                    }
+                } catch (\Exception $ex) {
+                    return $ex->getMessage();
+                }
+            }
+        }
+        return 0;
     }
 }

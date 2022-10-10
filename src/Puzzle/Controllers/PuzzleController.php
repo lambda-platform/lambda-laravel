@@ -21,8 +21,12 @@ class PuzzleController extends Controller
         $gridList = DB::table('vb_schemas')->where('type', 'grid')->get();
         $config = Config::get('lambda');
         $user_fields = $config['user_data_fields'];
+        $email_templates = null;
+        if(isset($config['has_email_template'])) {
+            $email_templates = DB::table('public.content_template')->where('type', 'И-мэйл загвар')->get();
+        }
 
-        return view('puzzle::index', compact('dbSchema', 'gridList', 'user_fields'));
+        return view('puzzle::index', compact('dbSchema', 'gridList', 'user_fields','email_templates'));
     }
 
     public function builder()
