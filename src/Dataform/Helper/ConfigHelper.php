@@ -59,7 +59,7 @@ class ConfigHelper
              ];
          }
          $mailFromConfig=[
-             'address' => $config->auth_username,
+             'address' => $config->url,
              'name' =>  $config->body,
          ];
 
