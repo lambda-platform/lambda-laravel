@@ -465,17 +465,38 @@ class Dataform extends Facade
 //        $sortOrder = $relObj == false ? (isset(request()->sortOrder) ? request()->sortOrder : false) : $relObj->sortOrder;
 
         $qr = DB::table($table)->select($value . ' as value');
-
         if (is_array($labels)) {
             $labelsWoInject = [];
             foreach ($labels as $l) {
-                if (!Schema::hasColumn($table, $l)) {
-                    unset($l);
-                } else {
-                    $labelsWoInject[] = $l;
+
+                if (env('DB_CONNECTION') == 'pgsql'){
+                    $pos=strpos($table, 'lambda');
+                    if($pos!==false)
+                    {
+                        $psql_table = explode(".", $table);
+
+                        if (!Schema::hasColumn($psql_table[count($psql_table)-1], $l)) {
+                            unset($l);
+                        } else {
+                            $labelsWoInject[] = $l;
+                        }
+                    }else {
+                        if (!Schema::hasColumn($table, $l)) {
+                            unset($l);
+                        } else {
+                            $labelsWoInject[] = $l;
+                        }
+                    }
+                }
+                else {
+                    if (!Schema::hasColumn($table, $l)) {
+                        unset($l);
+                    } else {
+                        $labelsWoInject[] = $l;
+                    }
                 }
             }
-
+            // dd($labelsWoInject);
             $label_column = join(",', ',", $labelsWoInject);
 
             if (env('DB_CONNECTION') == 'sqlsrv') {
