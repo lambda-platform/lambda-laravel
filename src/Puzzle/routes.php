@@ -12,7 +12,8 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/', 'PuzzleController@index');
         $router->get('/builder', 'PuzzleController@builder');
         $router->post('/builder/save', 'PuzzleController@savePage');
-
+        $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
+        $router->delete('/delete/{table}/{type}/{id}', 'PuzzleController@deleteVB');
         //Roles
         $router->get('roles-menus', 'RolesController@getRolesMenus');
 //        $router->get('deletedroles', 'RolesController@getDeletedRoles');
