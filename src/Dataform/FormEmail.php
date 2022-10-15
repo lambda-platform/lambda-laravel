@@ -55,7 +55,7 @@ trait FormEmail
                 $pdfData = mb_convert_encoding(\View::make('puzzle::email', ['body' => $body, 'title' => $email->subject]), 'HTML-ENTITIES', 'UTF-8');
                 Pdf::loadHTML($pdfData)->setWarnings(false)->save($attach_file_name);
             }
-            $subject = mb_convert_encoding($email->subject,'UTF-8');
+            $subject ="TEST";// mb_convert_encoding($email->subject,'UTF-8');
             //$subject = urlencode($email->subject);
             Helper\ConfigHelper::setMailConfig();
 

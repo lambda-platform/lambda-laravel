@@ -206,7 +206,17 @@ class Dataform extends Facade
 
 
             LOG::debug('ON DISPATCH');
+//            if (isset($schema->triggers) && isset($schema->triggers->namespace) && isset($schema->triggers->email)
+//                && $schema->triggers->email) {
+//                $emailTriggerData = new \stdClass();
+//                $emailTriggerData->data = $data;
+//                $emailTriggerData->schema = $schema;
+//                $this->callTrigger('email', $emailTriggerData);
+//                return;
+//            }
             //FormEmail::sendEmail($data,$this->dbSchema);
+//            $data = $this->callTrigger('email', $data, $id);
+//            $emailTriggerData=\new Stdclas
             FormJob::dispatch($data, $this->dbSchema)->afterResponse();
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
@@ -470,23 +480,23 @@ class Dataform extends Facade
             foreach ($labels as $l) {
 
                 if (env('DB_CONNECTION') == 'pgsql'){
-                    $pos=strpos($table, 'lambda');
-                    if($pos!==false)
-                    {
-                        $psql_table = explode(".", $table);
-
-                        if (!Schema::hasColumn($psql_table[count($psql_table)-1], $l)) {
-                            unset($l);
-                        } else {
-                            $labelsWoInject[] = $l;
-                        }
-                    }else {
-                        if (!Schema::hasColumn($table, $l)) {
-                            unset($l);
-                        } else {
-                            $labelsWoInject[] = $l;
-                        }
-                    }
+                    // $pos=strpos($table, 'lambda');
+//                    if($pos!==false)
+//                    {
+//                        $psql_table = explode(".", $table);
+//
+//                        if (!Schema::hasColumn($psql_table[count($psql_table)-1], $l)) {
+//                            unset($l);
+//                        } else {
+//                            $labelsWoInject[] = $l;
+//                        }
+                    //}else {
+                    //   if (!Schema::hasColumn($table, $l)) {
+                    //      unset($l);
+                    //  } else {
+                    $labelsWoInject[] = $l;
+                    // }
+                    //}
                 }
                 else {
                     if (!Schema::hasColumn($table, $l)) {
