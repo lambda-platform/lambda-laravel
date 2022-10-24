@@ -515,12 +515,14 @@ class Dataform extends Facade
         }
 
         if ($filter) {
-            $this->restrictInjection($qr, $filter);
+            $qr->whereRaw($filter);
+//            $this->restrictInjectionGroup($qr, $filter)
+//            $this->restrictInjection($qr, $filter);
         }
 
         if ($filterWithUser) {
-//            $qr->whereRaw($filterWithUser);
-            $this->restrictInjection($qr, $filterWithUser);
+            $qr->whereRaw($filterWithUser);
+//            $this->restrictInjection($qr, $filterWithUser);
         }
 
 //        dd($qr->dd());
@@ -531,6 +533,17 @@ class Dataform extends Facade
         }
 
         return $options;
+    }
+
+    function restrictInjectionGroup($qr, $filter)
+    {
+        if (str_contains($filter, 'AND')) {
+            dd($filter);
+        }
+
+        if (str_contains($filter, 'OR')) {
+            dd($filter);
+        }
     }
 
     function restrictInjection($qr, $filter)
