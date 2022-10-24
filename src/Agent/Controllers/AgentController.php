@@ -90,16 +90,14 @@ class AgentController extends Controller
     function searchUsers($q = null)
     {
         if ($q == '' || $q == null) {
-            return DB::table('users')->where('deleted_at', null)->paginate(16);
+            return DB::table('users')->where('deleted_at', null)->paginate(18);
         }
+
         $r = DB::table('users')
             ->where('deleted_at', null)
-            ->where('login', 'like', '%' . $q . '%')
-            ->orWhere('first_name', 'like', '%' . $q . '%')
-            ->orWhere('last_name', 'like', '%' . $q . '%')
-            ->orWhere('register_number', 'like', '%' . $q . '%')
-            ->orWhere('phone', 'like', '%' . $q . '%')
-            ->paginate(16);
+            ->whereRaw('lower(CONCAT_WS(\' \',login,first_name,last_name,phone)) like lower(\'%' . $q . '%\')')
+            ->paginate(18);
+
         if ($r) {
             return ['status' => true, 'data' => $r];
         }
