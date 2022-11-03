@@ -322,16 +322,16 @@ class Datagrid extends Facade
                         $this->qr = $this->qr->where($model, '!=', $filter['filter']);
                         break;
                     case 'contains':
-                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', ['%' . strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw($model . ' like ?', ['%' . strtolower($filter['filter']) . '%']);
                         break;
                     case 'notContains':
-                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') not like ?', ['%' . strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw($model . ' not like ?', ['%' . strtolower($filter['filter']) . '%']);
                         break;
                     case 'startsWith':
-                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', [strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw($model . ' like ?', [strtolower($filter['filter']) . '%']);
                         break;
                     case 'endsWith':
-                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', ['%' . strtolower($filter['filter'])]);
+                        $this->qr = $this->qr->whereRaw($model . ' like ?', ['%' . strtolower($filter['filter'])]);
                         break;
                     case 'greaterThan':
                         $this->qr = $this->qr->where($model, '>', $filter['filter']);
