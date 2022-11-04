@@ -32,7 +32,8 @@
             gridList: {!! json_encode($gridList) !!},
             user_fields:{!! json_encode($user_fields) !!},
             email_templates:{!! json_encode($email_templates) !!},
-            data_form_custom_elements: {!! json_encode(isset(config('lambda')['data_form_custom_elements']) ? config('lambda')['data_form_custom_elements'] : []) !!}
+            data_form_custom_elements: {!! json_encode(isset(config('lambda')['data_form_custom_elements']) ? config('lambda')['data_form_custom_elements'] : []) !!}ь
+            data_grid_custom_elements: {!! json_encode(isset(config('lambda')['data_grid_custom_elements']) ? config('lambda')['data_grid_custom_elements'] : []) !!}
         };
         window.lambda = {!! json_encode(config('lambda')) !!};
     </script>

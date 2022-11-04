@@ -18,7 +18,7 @@ class PuzzleController extends Controller
     public function index()
     {
         $dbSchema = Puzzle::getDBSchema();
-        $gridList = DB::table('vb_schemas')->where('type', 'grid')->get();
+        $gridList = DB::table('vb_schemas')->where('type', 'grid')->orderByDesc('id')->get();
         $config = Config::get('lambda');
         $user_fields = $config['user_data_fields'];
         $email_templates = null;
