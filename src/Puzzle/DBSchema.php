@@ -39,6 +39,7 @@ trait DBSchema
                 $schemaKey = 'table_schema';
                 $key = 'table_name';
                 $tableName = $t->$schemaKey . "." . $t->$key;
+
                 if (!array_search($tableName, $ignore_tables)) {
                     if ($t->table_type == 'VIEW') {
                         $views_[] = $tableName;
@@ -113,9 +114,13 @@ trait DBSchema
             if (env('DB_CONNECTION') == 'pgsql') {
                 $dataname = env('DB_DATABASE');
                 $tableWithSchema = explode('.', $table);
-                $tableName = end($tableWithSchema);
 
-                $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName'"));
+                $tableName = end($tableWithSchema);
+                $tableSchema = $tableWithSchema[0];
+
+                $qr = "SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$tableSchema' AND TABLE_NAME = '$tableName'";
+                $data = DB::select(DB::raw($qr));
+
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
@@ -127,6 +132,7 @@ trait DBSchema
                             'key' => $dcolumn->dtd_identifier == 1 ? 'PRI' : '',
                         ];
                     }
+
                     return $newData;
                 } else {
                     return $data;
