@@ -28,11 +28,10 @@ class NotifyController extends Controller
 //            ->get();
 
         $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
-from tuushin_db.`notification_status` as `s`
-inner join tuushin_db.`notifications` as `n` on `n`.`id` = `s`.`notif_id`
-inner join tuushin_db.`users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
+from `notification_status` as `s`
+inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
+inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
 where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
-
 
 
         return response()->json(['count' => $unseenCount, 'notifications' => $notifications]);
@@ -102,7 +101,7 @@ where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limi
         $receivers = [];
 
         $users = DB::table('users')->whereNotNull('token')->get();
-        foreach ($users as $u){
+        foreach ($users as $u) {
             array_push($receivers, $u->token);
         }
 
