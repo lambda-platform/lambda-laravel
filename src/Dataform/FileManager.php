@@ -28,11 +28,17 @@ trait FileManager
 
         $uploadFile = $destinationPath . $fileName;
 
-        $i = 0;
-        while (File::exists($uploadFile)) {
-            $fileName = ++$i . '-' . $fileName;
+//         $i = 0;
+//         while (File::exists($uploadFile)) {
+//             $fileName = ++$i . '-' . $fileName;
+//             $uploadFile = $destinationPath . $fileName;
+//         }
+       if (File::exists($uploadFile)) {
+            $currentDate = Carbon::now()->format('YmdHs');
+            $fileName = $fileName . '-' . $currentDate;
+            $fileName = $currentDate . '-' . $fileName;
             $uploadFile = $destinationPath . $fileName;
-        }
+          } 
 
         if ($file_type == 'images') {
             $thumbPath = $destinationPath . DIRECTORY_SEPARATOR . 'thumb' . DIRECTORY_SEPARATOR;
