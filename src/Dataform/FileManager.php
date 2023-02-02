@@ -24,6 +24,8 @@ trait FileManager
 
         $fileName = str_replace('#', "-", $file->getClientOriginalName());
         $fileName = str_replace('/', "-", $fileName);
+        $fileName = str_replace(' ', "%20", $fileName);
+
         $uploadFile = $destinationPath . $fileName;
 
         $i = 0;
@@ -40,12 +42,14 @@ trait FileManager
 
             $uploadSuccess = Image::make($file->getRealPath());
             $width = $uploadSuccess->width();
-            if ($width > 800) {
-                $uploadSuccess = $uploadSuccess->resize($config['img_width'], null, function ($constraint) {
-                    $constraint->aspectRatio();
-                });
-            }
-            $uploadSuccess->save($destinationPath . $fileName, $config['img_quality']);
+            //if ($width > 800) {
+            //    $uploadSuccess = $uploadSuccess->resize($config['img_width'], null, function ($constraint) {
+            //        $constraint->aspectRatio();
+             //   });
+            //}
+            //$uploadSuccess->save($destinationPath . $fileName, $config['img_quality']);
+            $uploadSuccess->save($destinationPath . $fileName);
+
 
             $thumb_image = $uploadSuccess->resize($config['img_thumb_width'], null, function ($constraint) {
                 $constraint->aspectRatio();
