@@ -99,7 +99,32 @@ class RolesController extends Controller
         ]);
 
         return response()->json(['status' => true]);
+    }
 
+    public function saveMultiRole(RoleRequest $request)
+    {
+        $role_id = $request->get('id');
+        $permissions = $request->get('permissions');
+
+        $isset = DB::table('permissions')
+            ->where('role_id', $role_id)
+            ->where('menu_id', request('menu'))
+            ->first();
+        if ($isset) {
+            DB::table('permissions')
+                ->where('role_id', $role_id)
+                ->where('menu_id', request('menu'))
+                ->update([
+                    'permissions' => json_encode($permissions)
+                ]);
+        } else {
+            DB::table('permissions')->insert([
+                'role_id' => request('id'),
+                'menu_id' => request('menu'),
+                'permissions' => json_encode($permissions)
+            ]);
+        }
+        return response()->json(['status' => true]);
     }
 
     public function getDeletedRoles()

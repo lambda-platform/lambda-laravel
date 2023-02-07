@@ -21,6 +21,7 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->post('roles/create', 'RolesController@store');
         $router->post('roles/store/{id}', 'RolesController@update');
         $router->post('save-role', 'RolesController@saveRole');
+        $router->post('save-multi-role', 'RolesController@saveMultiRole');
         $router->delete('roles/destroy/{id}', 'RolesController@destroy');
         $router->get('roles/restore/{id}', 'RolesController@restore');
         $router->delete('roles/forceDestroy/{id}', 'RolesController@forceDelete');
