@@ -15,6 +15,7 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
         $router->delete('/delete/{table}/{type}/{id}', 'PuzzleController@deleteVB');
         //Roles
+        $router->get('roles/type', 'RolesController@getRoleTypes');
         $router->get('roles-menus', 'RolesController@getRolesMenus');
 //        $router->get('deletedroles', 'RolesController@getDeletedRoles');
         $router->get('get-krud-fields/{id}', 'RolesController@getKrudFields');

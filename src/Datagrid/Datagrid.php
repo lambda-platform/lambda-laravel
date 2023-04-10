@@ -235,7 +235,7 @@ class Datagrid extends Facade
             foreach ($custom_condition as $c_condition) {
                 switch ($c_condition['type']) {
                     case 'equals':
-                        if (isset($c_condition['value']) && $c_condition['value'] && $c_condition['value'] != null) {
+                        if (isset($c_condition['value']) && $c_condition['value'] && $c_condition['value'] != null && $c_condition['value'] != "undefined") {
                             $this->qr = $this->qr->where($c_condition['field'], '=', $c_condition['value']);
                         }
                         break;
@@ -247,6 +247,11 @@ class Datagrid extends Facade
                     case 'range':
                         if ($c_condition['value']) {
                             $this->qr = $this->qr->where($c_condition['field'], '>=', Carbon::parse($c_condition['value'][0])->subDay())->where($c_condition['field'], '<=', Carbon::parse($c_condition['value'][1])->addDays(1));
+                        }
+                        break;
+                    case 'dateRange':
+                        if ($c_condition['value']) {
+                            $this->qr = $this->qr->whereDate($c_condition['field'], '>=', Carbon::parse($c_condition['value'][0]))->whereDate($c_condition['field'], '<=', Carbon::parse($c_condition['value'][1]));
                         }
                         break;
                     case 'lessThan':
@@ -297,7 +302,6 @@ class Datagrid extends Facade
                         break;
                 }
             }
-
             if ($filter['dateTo'] != null) {
                 $this->qr = $this->qr->where($model, '<=', $filter['dateTo']);
             }
@@ -322,16 +326,16 @@ class Datagrid extends Facade
                         $this->qr = $this->qr->where($model, '!=', $filter['filter']);
                         break;
                     case 'contains':
-                        $this->qr = $this->qr->whereRaw($model . ' like ?', ['%' . strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', ['%' . strtolower($filter['filter']) . '%']);
                         break;
                     case 'notContains':
-                        $this->qr = $this->qr->whereRaw($model . ' not like ?', ['%' . strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') not like ?', ['%' . strtolower($filter['filter']) . '%']);
                         break;
                     case 'startsWith':
-                        $this->qr = $this->qr->whereRaw($model . ' like ?', [strtolower($filter['filter']) . '%']);
+                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', [strtolower($filter['filter']) . '%']);
                         break;
                     case 'endsWith':
-                        $this->qr = $this->qr->whereRaw($model . ' like ?', ['%' . strtolower($filter['filter'])]);
+                        $this->qr = $this->qr->whereRaw('LOWER(' . $model . ') like ?', ['%' . strtolower($filter['filter'])]);
                         break;
                     case 'greaterThan':
                         $this->qr = $this->qr->where($model, '>', $filter['filter']);

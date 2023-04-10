@@ -7,7 +7,7 @@ Route::namespace('Lambda\Notify\Controllers')
         $router->get('/new/{user}', 'NotifyController@getNewNotifications');
         $router->get('/all', 'NotifyController@getAllNotifications');
         $router->get('/seen/{id}', 'NotifyController@setSeen');
+        $router->get('/seen-all', 'NotifyController@setSeenAll');
         $router->get('/token/{user}/{token}', 'NotifyController@setToken');
-        $router->get('/test', 'NotifyController@test');
         $router->get('/fcm', 'NotifyController@fcm');
     });

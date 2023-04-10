@@ -40,17 +40,35 @@ where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
     public function getAllNotifications()
     {
 
-        $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
-from `notification_status` as `s`
-inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
-inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
-where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limit 30");
+//        $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
+//from `notification_status` as `s`
+//inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
+//inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
+//where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limit 30");
 
-//        $notifications = DB::table('notifications')
-//            ->where('receiver_id', auth()->id())
-//            ->orderBy('created_at', 'desc')
-//            ->paginate('50');
+        $notifications = DB::table('notification_status as s')
+            ->join('notifications as n', 'n.id', '=', 's.notif_id')
+            ->join('users as u', 'u.id', '=', 'n.sender')
+            ->select('n.*', 'u.first_name', 'u.login', 's.id as sid', 's.seen')
+            ->where('s.receiver_id', auth()->id())
+            ->orderBy('n.created_at', 'desc')
+            ->paginate('50');
         return response()->json($notifications);
+    }
+
+    public function setSeenAll()
+    {
+        $r = DB::table('notification_status')
+            ->where('receiver_id', auth()->id())
+            ->where('seen', false)
+            ->update([
+                'seen' => true,
+                'seen_time' => Carbon::now()
+            ]);
+        if ($r) {
+            return response()->json(['status' => true]);
+        }
+        return response()->json(['status' => false]);
     }
 
     function setSeen($id)
@@ -78,22 +96,6 @@ where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limi
         if ($r) {
             return response()->json(['status' => true]);
         }
-    }
-
-    function test()
-    {
-        $data = [
-            'title' => 'lambda notification',
-            'body' => 'lambda notification msg body',
-            'link' => 'http://luna.test',
-            'users' => [189, 86]
-        ];
-
-
-        $client = new Client(new Version2X('http://localhost:3000'));
-        $client->initialize();
-        $client->emit('notify', $data);
-        $client->close();
     }
 
     function fcm()
