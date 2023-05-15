@@ -68,7 +68,8 @@ class AuthController extends Controller
             $token = JWTAuth::fromUser(auth()->user());
 
             JWTAuth::setToken($token);
-            setcookie("token", $token, time() + 3600, '/', NULL, 0);
+            $cookieLifetime =time() + (60 * env('jwt_ttl', 60)); //minutes
+            setcookie("token", $token, $cookieLifetime, '/', NULL, 0);
             return response()
                 ->json([
                     'status' => true,
