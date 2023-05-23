@@ -43,7 +43,6 @@ class Datagrid extends Facade
             } else {
                 if (isset($s->gridType)) {
                     if (($s->gridType == 'Tag') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
-
                         if (env('DB_CONNECTION') == 'pgsql') {
                             $sql = '(select ARRAY_TO_STRING(ARRAY_AGG(' . $s->relation->fields . ' ORDER BY ' . $s->relation->fields . '),\', \') FROM ' . $s->relation->table . ' WHERE STRING_TO_ARRAY(' . $s->relation->key . '::VARCHAR,\',\') && STRING_TO_ARRAY(' . $s->model . ',\',\')) as ' . $s->model;
                         } else {
