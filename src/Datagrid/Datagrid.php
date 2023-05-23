@@ -53,7 +53,7 @@ class Datagrid extends Facade
                     }
 
                     if (($s->gridType == 'Select') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
-                        if($s->relation->filter != '' && $s->relation->filter != null){
+                        if(isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null){
                             $sql = '(SELECT ' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter .' AND ' . $s->relation->key . ' IN (' . $s->model . ') limit 1) as ' . $s->model;
                         }else{
                             $sql = '(SELECT ' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (' . $s->model . ') limit 1) as ' . $s->model;
