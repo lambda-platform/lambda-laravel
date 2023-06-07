@@ -18,10 +18,41 @@ trait FormEmail
 
     public function sendEmail($data, $schema)
     {
-        Log::debug('EMAIL - SEND EMAIL WORKED: ' . Carbon::now());
+        if(isset($schema->email) && isset($schema->email->has_custom_trigger) && $schema->email->has_custom_trigger)
+        {
+            Log::debug('EMAIL - CUSTOM TRIGGER WORKED: '.isset($schema->email).'-'.isset($schema->email->has_custom_trigger).'-' . json_encode($schema->email));
+            if (isset($schema->email->custom_trigger) && method_exists(app($schema->email->custom_trigger), $schema->email->custom_trigger_function)) {
+                Log::debug('EMAIL - START WORKING CUSTOM EMAIL TRIGGER: ' . $schema->email->custom_trigger.'@'.$schema->email->custom_trigger_function);
+                app($schema->email->custom_trigger)->{$schema->email->custom_trigger_function}($data, $schema);
+            }
+        }
+        else{
+            Log::debug('EMAIL - NORMAL EMAIL WORKED: ' . json_encode($schema));
+            $this->sendEmailNormal($data,$schema);
+        }
+
+    }
+    public function sendEmailNormal($data,$schema)
+    {
+        Log::debug('EMAIL - SEND EMAIL NORMAL LAMBDA FUNCTION: ' . Carbon::now());
         Log::debug('EMAIL - DATA: ' . json_encode($schema->email));
 
         if (isset($schema->email) && count($schema->email->to) > 0 && $schema->email->subject) {
+
+
+            $config = null;
+            try {
+                if (env('DB_CONNECTION') == 'pgsql') {
+                    $config = DB::table('public.api_config')->where('code', '10013')->first();
+                } else {
+                    $config = DB::table('api_config')->where('code', '10013')->first();
+                }
+            }
+            catch(\Exception $ex)
+            {
+                Log::error('Email Config: no config DB::table(api_config)->where(code, 10013)');
+            }
+
             $email = $schema->email;
             $to = $email->to;
             $cc = $email->cc;
@@ -47,15 +78,27 @@ trait FormEmail
 
             $body = $email->body;
             foreach ($data as $key => $value) {
-                $findStr = '[[' . $key . ']]';
-                $body = str_replace($findStr, $value, $body);
+
+                if (str_contains($value, 'uploaded')) {
+                    $value = str_replace(' ', '%20', $value);
+                    $value = str_replace('\\', '/', $value);
+                    $url=$config->host.$value;
+                    $downloadLink='<a href="'.$url.'" target="_blank">Татаж авах</a>';
+                    $findStr = '[[' . $key . ']]';
+                    $body = str_replace($findStr, $downloadLink, $body);
+                } else{
+                    $findStr = '[[' . $key . ']]';
+                    $body = str_replace($findStr, $value, $body);
+                }
+
             }
             $attach_file_name = 'attach.pdf';
             if (isset($schema->email->has_attach) && $schema->email->has_attach) {
                 $pdfData = mb_convert_encoding(\View::make('puzzle::email', ['body' => $body, 'title' => $email->subject]), 'HTML-ENTITIES', 'UTF-8');
                 Pdf::loadHTML($pdfData)->setWarnings(false)->save($attach_file_name);
             }
-            $subject ="TEST";// mb_convert_encoding($email->subject,'UTF-8');
+            //$subject = urlencode($email->subject);
+            $subject = mb_convert_encoding($email->subject,'UTF-8');
             //$subject = urlencode($email->subject);
             Helper\ConfigHelper::setMailConfig();
 
@@ -87,7 +130,7 @@ trait FormEmail
                     Log::error('EMAIL - Email error: ' . $e);
                 }
             }
-
         }
     }
+
 }
