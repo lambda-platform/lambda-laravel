@@ -69,7 +69,14 @@ class RolesController extends Controller
             $grid_fields = [];
             return response()->json(['status' => true, 'user_fields' => $user_fields, 'form_fields' => $form_fields, 'grid_fields' => $grid_fields]);
         }
+    }
 
+    function getRoleTypes()
+    {
+        if (\config('lambda.org_type_tbl')) {
+            return DB::table(config('lambda.org_type_tbl'))->get();
+        }
+        return response()->json([]);
     }
 
     public function getRolesMenus()
@@ -78,9 +85,11 @@ class RolesController extends Controller
             ->where('name', '!=', 'super-admin')
             ->where('deleted_at', '=', NULL)
             ->orderBy('name')->get();
+
         $menus = DB::table('vb_schemas')
             ->where('type', 'menu')
             ->orderBy('name')->get();
+
         $cruds = DB::table('krud')
             ->orderBy('title')->get();
         if ($roles) {
@@ -99,7 +108,32 @@ class RolesController extends Controller
         ]);
 
         return response()->json(['status' => true]);
+    }
 
+    public function saveMultiRole(RoleRequest $request)
+    {
+        $role_id = $request->get('id');
+        $permissions = $request->get('permissions');
+
+        $isset = DB::table('permissions')
+            ->where('role_id', $role_id)
+            ->where('menu_id', request('menu'))
+            ->first();
+        if ($isset) {
+            DB::table('permissions')
+                ->where('role_id', $role_id)
+                ->where('menu_id', request('menu'))
+                ->update([
+                    'permissions' => json_encode($permissions)
+                ]);
+        } else {
+            DB::table('permissions')->insert([
+                'role_id' => request('id'),
+                'menu_id' => request('menu'),
+                'permissions' => json_encode($permissions)
+            ]);
+        }
+        return response()->json(['status' => true]);
     }
 
     public function getDeletedRoles()
@@ -120,13 +154,19 @@ class RolesController extends Controller
     {
 //        if (Auth::user()->can('users_create')) {
 //        $permissions = implode(",", $request->get('permissions'));
-        $role = Role::create([
+        $data = [
             'name' => $request['name'],
             'display_name' => $request['display_name'],
             'description' => $request['description'],
             'extra' => $request['extra'],
 //                'permissions' => $permissions,
-        ]);
+        ];
+
+        if (request()->has('type')) {
+            $data['type'] = request('type');
+        }
+
+        $role = Role::create($data);
 
         if ($role) {
             return response()->json(['status' => true, 'role' => $role, 'message' => 'Үүрэг амжилттай нэмэгдлээ']);
@@ -142,6 +182,9 @@ class RolesController extends Controller
 //        $permissions = implode(",", $permissionsArray);
 
         $role = Role::find($id);
+        if (isset($role->type) && $request->has('type')) {
+            $role->type = $request->get('type');
+        }
 
         $role->name = $request->get('name');
         $role->display_name = $request->get('display_name');

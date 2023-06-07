@@ -479,7 +479,7 @@ class Dataform extends Facade
             $labelsWoInject = [];
             foreach ($labels as $l) {
 
-                if (env('DB_CONNECTION') == 'pgsql'){
+                if (env('DB_CONNECTION') == 'pgsql') {
                     // $pos=strpos($table, 'lambda');
 //                    if($pos!==false)
 //                    {
@@ -497,8 +497,7 @@ class Dataform extends Facade
                     $labelsWoInject[] = $l;
                     // }
                     //}
-                }
-                else {
+                } else {
                     if (!Schema::hasColumn($table, $l)) {
                         unset($l);
                     } else {

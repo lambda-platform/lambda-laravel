@@ -113,7 +113,7 @@ trait FileManager
     {
         $img = Image::make($_FILES['image']['tmp_name']);
         // resize image
-        $img->fit(300, 200);
+//        $img->fit(300, 200);
         // save image
         $img->save('foo/bar.jpg');
     }

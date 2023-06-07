@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/puzzle.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/krud.css') }}">
     <link rel="stylesheet" href="/vendor/ol/ol.css">
+    <script src="/vendor/tinymce/tinymce.min.js"></script>
 @endpush
 
 @section('app')

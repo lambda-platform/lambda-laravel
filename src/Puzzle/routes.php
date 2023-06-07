@@ -15,12 +15,14 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/dbschema/{table?}', 'PuzzleController@dbSchema');
         $router->delete('/delete/{table}/{type}/{id}', 'PuzzleController@deleteVB');
         //Roles
+        $router->get('roles/type', 'RolesController@getRoleTypes');
         $router->get('roles-menus', 'RolesController@getRolesMenus');
 //        $router->get('deletedroles', 'RolesController@getDeletedRoles');
         $router->get('get-krud-fields/{id}', 'RolesController@getKrudFields');
         $router->post('roles/create', 'RolesController@store');
         $router->post('roles/store/{id}', 'RolesController@update');
         $router->post('save-role', 'RolesController@saveRole');
+        $router->post('save-multi-role', 'RolesController@saveMultiRole');
         $router->delete('roles/destroy/{id}', 'RolesController@destroy');
         $router->get('roles/restore/{id}', 'RolesController@restore');
         $router->delete('roles/forceDestroy/{id}', 'RolesController@forceDelete');
