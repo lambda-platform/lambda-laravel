@@ -267,6 +267,11 @@ class Datagrid extends Facade
                             $this->qr = $this->qr->where($c_condition['field'], '>=', $c_condition['value']);
                         }
                         break;
+                    case 'whereIn':
+                        if (isset($c_condition['value'])) {
+                            $this->qr = $this->qr->whereIn($c_condition['field'], $c_condition['value']);
+                        }
+                        break;
                     default:
                         if ($c_condition['value'] && strval($c_condition['value']) != strval(0)) {
                             $this->qr = $this->qr->where($c_condition['field'], '=', $c_condition['value']);
