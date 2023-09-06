@@ -56,8 +56,6 @@ class PasswordController extends Controller
         } else {
             return response()->json(['status' => false, 'error' => $static_words['userNotFound']], 401);
         }
-
-
     }
 
     public function passwordReset()
