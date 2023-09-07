@@ -45,17 +45,16 @@ class AuthController extends Controller
     {
         try {
             $config = Config::get('lambda');
-            if(isset($config['user_login_check_active']) && $config['user_login_check_active']==1){
+            if (isset($config['user_login_check_active']) && $config['user_login_check_active'] == 1) {
                 $user = DB::table("users")->where('login', $credentials['login'])->first();
-                if(!$user) {
+                if (!$user) {
                     return response()->json(['status' => false, 'error' => 'User Not found'], 401);
                 }
                 if ($user->is_active == null || $user->is_active == 0) {
                     return response()->json(['status' => false, 'error' => 'Хэрэглэгч баталгаажаагүй байна'], 401);
                 }
             }
-//            $token = JWTAuth::attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
-            // $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addHour()->timestamp]);
+
             $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
         } catch (JWTException $e) {
             return response()->json(['status' => false, 'error' => 'Could not authenticate', 'exception' => $e->getMessage()], 500);
@@ -68,7 +67,7 @@ class AuthController extends Controller
             $token = JWTAuth::fromUser(auth()->user());
 
             JWTAuth::setToken($token);
-            $cookieLifetime =time() + (60 * env('jwt_ttl', 60)); //minutes
+            $cookieLifetime = time() + (60 * env('jwt_ttl', 60)); //minutes
             setcookie("token", $token, $cookieLifetime, '/', NULL, 0);
 
             return response()
@@ -79,7 +78,6 @@ class AuthController extends Controller
                     'path' => $this->checkRole(auth()->user()->role),
                 ], 200)
                 ->header('Authotization', "bearer " . $token);
-//                ->withCookie(cookie('token', $token, auth()->factory()->getTTL() * 86400));
         }
     }
 
@@ -138,8 +136,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 6000
-
+            'expires_in' => auth()->factory()->getTTL() * env('jwt_ttl', 6000) * 60
         ]);
     }
 
