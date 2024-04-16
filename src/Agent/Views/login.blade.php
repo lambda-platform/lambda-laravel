@@ -5,6 +5,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <meta name="csrf-token" content="{!! csrf_token() !!}">
+    <link rel="icon" type="image/png" href="{{ config('lambda.favicon') }}">
     <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,400,700|Roboto:300,400,500,700,900&amp;subset=cyrillic-ext"
           rel="stylesheet">
     <title>{{ config('lambda.title') }}</title>
