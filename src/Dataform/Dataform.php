@@ -193,7 +193,6 @@ class Dataform extends Facade
             unset($data['id']);
         }
 
-        // dd($qr->toSql());
         $r = $qr->insert($data);
         if ($r) {
             isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();
@@ -203,7 +202,6 @@ class Dataform extends Facade
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
             $cache = $this->cacheClear();
-
 
             LOG::debug('ON DISPATCH');
 //            if (isset($schema->triggers) && isset($schema->triggers->namespace) && isset($schema->triggers->email)
@@ -217,11 +215,13 @@ class Dataform extends Facade
             //FormEmail::sendEmail($data,$this->dbSchema);
 //            $data = $this->callTrigger('email', $data, $id);
 //            $emailTriggerData=\new Stdclas
+
             FormJob::dispatch($data, $this->dbSchema)->afterResponse();
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
             $response_data[$this->dbSchema->identity] = $id;
             LOG::debug('RESPONSE: ' . Carbon::now());
+
             return response()->json($response_data);
         }
 
@@ -376,13 +376,12 @@ class Dataform extends Facade
     public function update($id, $data, $subforms)
     {
         unset($data[$this->dbSchema->identity]);
-
         $data = $this->callTrigger('beforeUpdate', $data, $id);
         $r = DB::table($this->dbSchema->model)
             ->where($this->dbSchema->identity, $id)
             ->update($data);
-        $data[$this->dbSchema->identity] = $id;
 
+        $data[$this->dbSchema->identity] = $id;
         $this->updateSubs($subforms, $id, 'update');
         $data = $this->callTrigger('afterUpdate', $data, $id);
         $cache = $this->cacheClear();
@@ -513,9 +512,9 @@ class Dataform extends Facade
                     // $pdo = DB::connection()->getPdo();
                     // $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
                     // if ($db_server_v >= '11.0.2100.60') {
-                        $label_column = 'concat(' . $label_column . ')';
+                    $label_column = 'concat(' . $label_column . ')';
                     // } else {
-                        // $label_column = '(' . $label_column . ')';
+                    // $label_column = '(' . $label_column . ')';
                     // }
                 } else {
                     $label_column = '(' . $label_column . ')';

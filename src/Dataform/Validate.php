@@ -2,6 +2,7 @@
 
 namespace Lambda\Dataform;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Validator;
 use JWTAuth;
@@ -123,15 +124,18 @@ trait Validate
                         $computedModels[$s->model] = request()->get($s->model);
                     }
                 }
-            } elseif (isset($s->formType) && ($s->formType == 'Date' || $s->formType == 'DateTime')) {
+            }
+            elseif (isset($s->formType) && ($s->formType == 'Date' || $s->formType == 'DateTime')) {
                 $computedModels[$s->model] = null;
-                if (request()->get($s->model))
-                    $computedModels[$s->model] = \Carbon\Carbon::parse(request()->get($s->model));
+                if (request()->get($s->model)) {
+                    $computedModels[$s->model] = request()->get($s->model);
+                }
 
                 if (property_exists($s, 'rules')) {
                     $validations = array_merge($validations, $this->makeValidationStr($s->model, $s->rules));
                 }
-            } elseif (isset($s->formType) && ($s->formType == 'Image' && (isset($s->isMultiple) && $s->isMultiple === true))) {
+            }
+            elseif (isset($s->formType) && ($s->formType == 'Image' && (isset($s->isMultiple) && $s->isMultiple === true))) {
                 $computedModels[$s->model] = json_encode(request()->get($s->model));
 
                 if (property_exists($s, 'rules')) {
