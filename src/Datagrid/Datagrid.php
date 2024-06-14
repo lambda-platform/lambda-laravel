@@ -54,16 +54,15 @@ class Datagrid extends Facade
 
                     if (($s->gridType == 'Select') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
                         if (env('DB_CONNECTION') == 'sqlsrv') {
-                            if(isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null){
-                                $sql = '(SELECT TOP 1' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter .' AND ' . $s->relation->key . ' IN (' . $s->model . ')) as ' . $s->model;
-                            }else{
+                            if (isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null) {
+                                $sql = '(SELECT TOP 1' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter . ' AND ' . $s->relation->key . ' IN (' . $s->model . ')) as ' . $s->model;
+                            } else {
                                 $sql = '(SELECT TOP 1' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (' . $s->model . ')) as ' . $s->model;
                             }
-                        }
-                        else{
-                            if(isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null){
-                                $sql = '(SELECT ' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter .' AND ' . $s->relation->key . ' IN (' . $s->model . ') limit 1) as ' . $s->model;
-                            }else{
+                        } else {
+                            if (isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null) {
+                                $sql = '(SELECT ' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter . ' AND ' . $s->relation->key . ' IN (' . $s->model . ') limit 1) as ' . $s->model;
+                            } else {
                                 $sql = '(SELECT ' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (' . $s->model . ') limit 1) as ' . $s->model;
                             }
                         }
@@ -425,7 +424,6 @@ class Datagrid extends Facade
             'name' => $this->title . '-' . Carbon::today() . '.xlsx',
             'file' => base64_encode($excelFile),
         ];
-
         return response()->json($response);
     }
 
@@ -437,19 +435,12 @@ class Datagrid extends Facade
     public function cusTomData($schemaID)
     {
         $ids = request()->get('ids');
-
-
         if (isset($this->dbSchema->condition)) {
             $this->qr = $this->qr->whereRaw($this->dbSchema->condition);
         }
 
-
         $this->qr->whereIn('id', $ids);
-
-
         $data = $this->qr->get();
-
-
         return response()->json(["data" => $data, "schema" => $this->schema]);
     }
 
@@ -462,12 +453,10 @@ class Datagrid extends Facade
 
         $data = $this->qr->get();
         return $this->callTrigger('beforePrint', $data);
-
     }
 
     public function deleteData($id)
     {
-
         $table = $this->dbSchema->model;
         if (isset($this->dbSchema->mainTable) && ($this->dbSchema->mainTable != null || $this->dbSchema->mainTable != "")) {
             $table = $this->dbSchema->mainTable;
@@ -492,7 +481,6 @@ class Datagrid extends Facade
         } else {
             return false;
         }
-
     }
 
     public function updateRow()
@@ -516,8 +504,6 @@ class Datagrid extends Facade
         } else {
             return false;
         }
-
-
     }
 
     public function joinData($fieldData)

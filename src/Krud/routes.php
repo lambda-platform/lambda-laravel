@@ -2,7 +2,7 @@
 
 Route::namespace('Lambda\Krud\Controllers')
     ->prefix('lambda/krud')
-    ->middleware(['api'])
+    ->middleware(['api', 'jwt'])
     ->group(function ($router) {
         $router->any('excel/{schema}', 'KrudController@excel');
         $router->any('print/{schema}', 'KrudController@print');
