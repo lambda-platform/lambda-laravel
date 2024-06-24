@@ -21,9 +21,3 @@ Route::namespace('Lambda\Krud\Controllers')
         $router->post('unique', 'KrudController@checkUnique');
         $router->post('check_current_password', 'KrudController@checkCurrentPassword');
     });
-
-Route::namespace('Lambda\Krud\Controllers')
-    ->middleware(['api'])
-    ->group(function ($router) {
-        $router->post('/api/lm/form/{schemaId}/{action}', 'KrudController@crud');
-    });

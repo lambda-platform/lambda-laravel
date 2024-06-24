@@ -186,6 +186,7 @@ class Dataform extends Facade
         if (isset($data->ignore_exec)) {
             return $data->response;
         }
+
         $qr = DB::table($this->dbSchema->model);
 
 //        $r = isset($data['id']) ? $qr->insert($data) : $qr->insertGetId($data);
@@ -377,6 +378,10 @@ class Dataform extends Facade
     {
         unset($data[$this->dbSchema->identity]);
         $data = $this->callTrigger('beforeUpdate', $data, $id);
+        if (isset($data->ignore_exec)) {
+            return $data->response;
+        }
+
         $r = DB::table($this->dbSchema->model)
             ->where($this->dbSchema->identity, $id)
             ->update($data);
