@@ -21,7 +21,11 @@ class AuthController extends Controller
     {
         //Returning login page
         if (request()->isMethod('get')) {
-            return view('agent::login');
+            if (auth()->user() && auth()->user()->role) {
+                return redirect()->to($this->checkRole(auth()->user()->role));
+            } else {
+                return view('agent::login');
+            }
         }
 
         //Validating
@@ -54,8 +58,8 @@ class AuthController extends Controller
                     return response()->json(['status' => false, 'error' => 'Хэрэглэгч баталгаажаагүй байна'], 401);
                 }
             }
-
-            $token = auth('api')->attempt($credentials, ['exp' => Carbon::now()->addWeek()->timestamp]);
+            JWTAuth::factory()->setTTL(env('JWT_TTL', 60));
+            $token = auth('api')->attempt($credentials);
         } catch (JWTException $e) {
             return response()->json(['status' => false, 'error' => 'Could not authenticate', 'exception' => $e->getMessage()], 500);
         }
@@ -63,21 +67,13 @@ class AuthController extends Controller
         if (!$token) {
             return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
         } else {
-            $meta = $this->respondWithToken($token);
-            $token = JWTAuth::fromUser(auth()->user());
-
-            JWTAuth::setToken($token);
-            $cookieLifetime = time() + (60 * env('jwt_ttl', 60)); //minutes
-            setcookie("token", $token, $cookieLifetime, '/', NULL, 0);
-
             return response()
                 ->json([
                     'status' => true,
-                    'data' => request()->user(),
-                    'meta' => $meta,
                     'path' => $this->checkRole(auth()->user()->role),
                 ], 200)
-                ->header('Authotization', "bearer " . $token);
+                ->header('Authotization', "bearer " . $token)
+                ->withCookie('token', auth()->getToken()->get(), env('JWT_TTL', 60), '/');
         }
     }
 
@@ -85,7 +81,6 @@ class AuthController extends Controller
     {
         $config = Config::get('lambda');
         $roleRedirects = $config['role-redirects'];
-//        $defaultRedirect = '/' . env('LAMBDA_APP_NAME', 'mle');
         $defaultRedirect = $config['app_url'];
 
         foreach ($roleRedirects as $roleRedirect) {
@@ -126,15 +121,6 @@ class AuthController extends Controller
     public function refresh()
     {
         return $this->respondWithToken(auth()->refresh());
-    }
-
-    protected function respondWithToken($token)
-    {
-        return response()->json([
-            'access_token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * env('jwt_ttl', 6000) * 60
-        ]);
     }
 
     public function me()
