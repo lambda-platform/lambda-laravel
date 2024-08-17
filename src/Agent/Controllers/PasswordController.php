@@ -77,8 +77,7 @@ class PasswordController extends Controller
             return response()->json(['status' => false, 'error' => $static_words['passwordResetCodeRequired']], 401);
 
         $now = \Carbon\Carbon::now();
-        $create_at = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $reset->created_at);
-
+        $create_at = \Carbon\Carbon::parse($reset->created_at);
 
         $diff_in_minutes = $now->diffInMinutes($create_at);
         if ($password_reset_time_out >= $diff_in_minutes) {
