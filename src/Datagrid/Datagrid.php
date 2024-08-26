@@ -462,6 +462,12 @@ class Datagrid extends Facade
             $table = $this->dbSchema->mainTable;
         }
 
+        $deleteData = DB::table($table)->where($this->dbSchema->identity, $id)->first();
+        $result = $this->callTrigger('beforeDelete', $deleteData, $id);
+        if (isset($result->ignore_exec)) {
+            return $result->response;
+        }
+
         if (isset($this->dbSchema->softDelete) && $this->dbSchema->softDelete) {
             $deleted = DB::table($table)->where($this->dbSchema->identity, $id)->update([
                 'deleted_at' => Carbon::now(),
@@ -477,7 +483,7 @@ class Datagrid extends Facade
         $deleted = DB::table($table)->where($this->dbSchema->identity, $id)->delete();
         if ($deleted) {
             $cache = $this->cacheClear();
-            return $this->callTrigger('afterDelete', true, $id);
+            return $this->callTrigger('afterDelete', $deleteData, $id);
         } else {
             return false;
         }
