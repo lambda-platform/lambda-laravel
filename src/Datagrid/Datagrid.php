@@ -98,10 +98,8 @@ class Datagrid extends Facade
                 return $g->printData($schemaID);
             case 'delete':
                 return $g->deleteData($id);
-                break;
             case 'update-row':
                 return $g->updateRow($schemaID);
-                break;
             default:
                 break;
         }
@@ -465,7 +463,7 @@ class Datagrid extends Facade
         $deleteData = DB::table($table)->where($this->dbSchema->identity, $id)->first();
         $result = $this->callTrigger('beforeDelete', $deleteData, $id);
         if (isset($result->ignore_exec)) {
-            return $result->response;
+            return $result;
         }
 
         if (isset($this->dbSchema->softDelete) && $this->dbSchema->softDelete) {
@@ -494,7 +492,6 @@ class Datagrid extends Facade
         $model = request()->get('model');
         $value = request()->get('value');
         $ids = request()->get('ids');
-
 
         if ($model && $value && $ids) {
             $table = $this->dbSchema->model;

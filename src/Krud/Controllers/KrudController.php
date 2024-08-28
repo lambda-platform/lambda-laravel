@@ -16,7 +16,12 @@ class KrudController extends Controller
 
     public function delete($schema, $id)
     {
-        if (Datagrid::exec('delete', $schema, $id)) {
+        $result = Datagrid::exec('delete', $schema, $id);
+        if (isset($result->ignore_exec)) {
+            return response()->json($result->response);
+        }
+
+        if ($result) {
             return response()->json(['status' => true]);
         }
 
