@@ -466,7 +466,6 @@ class Datagrid extends Facade
         }
 
         $deleteData = DB::table($table)->where($this->dbSchema->identity, $id)->first();
-        dd($deleteData);
         $result = $this->callTrigger('beforeDelete', $deleteData, $id);
         if (isset($result->ignore_exec)) {
             return $result;
