@@ -66,7 +66,6 @@ class Dataform extends Facade
             case 'edit':
                 $subforms = [];
 
-
                 foreach ($f->schema as $sch) {
                     if (isset($sch->formType)) {
                         if ($sch->formType == 'SubForm' && isset($sch->subtype) && $sch->subtype == 'Form') {
@@ -190,13 +189,13 @@ class Dataform extends Facade
         $qr = DB::table($this->dbSchema->model);
 
 //        $r = isset($data['id']) ? $qr->insert($data) : $qr->insertGetId($data);
-        if (array_key_exists('id', $data) && $data['id'] == null) {
-            unset($data['id']);
+        if (array_key_exists($this->dbSchema->identity, $data) && $data[$this->dbSchema->identity] == null) {
+            unset($data[$this->dbSchema->identity]);
         }
 
         $r = $qr->insert($data);
         if ($r) {
-            isset($data['id']) ? $id = $data['id'] : $id = $data['id'] = DB::getPdo()->lastInsertId();
+            isset($data[$this->dbSchema->identity]) ? $id = $data[$this->dbSchema->identity] : $id = $data[$this->dbSchema->identity] = DB::getPdo()->lastInsertId();
             $this->storeSubs($subforms, $id, 'store');
             $this->storeSteps($id);
 
@@ -262,6 +261,7 @@ class Dataform extends Facade
                         DB::table($sf->model)
                             ->where('id', $old->id)
                             ->update($sd);
+
                         //starting to update subtables data
                         if (count($subSubForms) > 0) {
 

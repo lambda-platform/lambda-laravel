@@ -32,7 +32,7 @@ trait Validate
 
                 //Setting ID when storing data
                 foreach ($s->schema as $sch) {
-                    if ($s->identity == $sch->model) {
+                    if (isset($s->identity) && $s->identity == $sch->model) {
 
                         if (isset($sch->extra) && ($sch->extra == '' || $sch->extra == null)) {
                             $subForm->generateID = true;
@@ -82,8 +82,7 @@ trait Validate
 
                 //Setting ID when storing data
                 foreach ($s->schema as $sch) {
-                    if ($s->identity == $sch->model) {
-
+                    if (isset($s->identity) && $s->identity == $sch->model) {
                         if (isset($sch->extra) && ($sch->extra == '' || $sch->extra == null)) {
                             $subForm->generateID = true;
                             $subForm->identity = $sch->model;

@@ -1,8 +1,9 @@
 <?php
 
-namespace Lambda\Puzzle;
+namespace Lambda\Puzzle\Views;
 
 use DB;
+use Lambda\Puzzle\Puzzle;
 
 trait DBSchema
 {
