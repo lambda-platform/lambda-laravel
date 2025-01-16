@@ -119,7 +119,7 @@ class Dataform extends Facade
                         if ($sf->generateID) {
                             $sd[$sf->identity] = (string)Uuid::generate();
                         } else {
-                            unset($sd['id']);
+                            unset($sd[$sf->identity]);
                         }
 
                         //form subform
@@ -233,13 +233,16 @@ class Dataform extends Facade
 
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
+                $sfIdentity = $sf->identity != null ? $sf->identity : 'id';
+
                 $oldSubData = DB::table($sf->model)
                     ->where($sf->parent, $parentID)
-                    ->pluck('id as val', 'id');
+                    ->pluck($sfIdentity . ' as val', $sfIdentity);
+
                 foreach ($sf->data as $sd) {
-                    if (isset($sd['id'])) {
+                    if (isset($sd[$sfIdentity])) {
                         $old = DB::table($sf->model)
-                            ->where('id', $sd['id'])
+                            ->where($sfIdentity, $sd[$sfIdentity])
                             ->first();
                         //form subform
                         $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
@@ -256,12 +259,11 @@ class Dataform extends Facade
                             };
                         }
 
-                        unset($oldSubData[$old->id]);
-                        unset($sd['id']);
+                        unset($oldSubData[$old->{$sfIdentity}]);
+                        unset($sd[$sfIdentity]);
                         DB::table($sf->model)
-                            ->where('id', $old->id)
+                            ->where($sfIdentity, $old->{$sfIdentity})
                             ->update($sd);
-
                         //starting to update subtables data
                         if (count($subSubForms) > 0) {
 
@@ -317,7 +319,7 @@ class Dataform extends Facade
                             $sd[$sf->identity] = (string)Uuid::generate();
                         } else {
                             if (env('DB_CONNECTION') == 'sqlsrv') {
-                                unset($sd['id']);
+                                unset($sd[$sfIdentity]);
                             }
                         }
 

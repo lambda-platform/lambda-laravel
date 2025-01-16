@@ -79,6 +79,7 @@ trait Validate
                 $subForm->data = request()->get($s->model);
                 $subForm->parent = $s->parent;
                 $subForm->model = $s->model;
+                $subForm->identity = isset($s->identity) ? $s->identity : null;
 
                 //Setting ID when storing data
                 foreach ($s->schema as $sch) {
