@@ -20,7 +20,7 @@ class Dataform extends Facade
     use Validate;
     use Utils;
     use CustomUtils;
-    use FormEmail;
+//    use FormEmail;
 
     public function __construct()
     {
