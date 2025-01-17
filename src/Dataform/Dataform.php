@@ -233,7 +233,7 @@ class Dataform extends Facade
 
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
-                $sfIdentity = $sf->identity != null ? $sf->identity : 'id';
+                $sfIdentity = (isset($sf->identity) && $sf->identity != null) ? $sf->identity : 'id';
 
                 $oldSubData = DB::table($sf->model)
                     ->where($sf->parent, $parentID)
