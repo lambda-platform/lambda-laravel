@@ -20,6 +20,7 @@ class Dataform extends Facade
     use Validate;
     use Utils;
     use CustomUtils;
+
 //    use FormEmail;
 
     public function __construct()
@@ -261,12 +262,13 @@ class Dataform extends Facade
 
                         unset($oldSubData[$old->{$sfIdentity}]);
                         unset($sd[$sfIdentity]);
+
                         DB::table($sf->model)
                             ->where($sfIdentity, $old->{$sfIdentity})
                             ->update($sd);
+
                         //starting to update subtables data
                         if (count($subSubForms) > 0) {
-
                             foreach ($subSubForms as $sForm) {
                                 //data baival
                                 if (count($sForm->data) > 0) {
