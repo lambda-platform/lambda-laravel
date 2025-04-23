@@ -407,6 +407,7 @@ class Datagrid extends Facade
 
         $this->schema = $this->dbSchema->schema;
         $this->qr = DB::table($this->dbSchema->model);
+        $this->qr = $this->callTrigger('beforeFetch', $this->qr);
         foreach ($columnAggregations as $s) {
             $this->qr->addSelect(DB::raw("$s->aggregation($s->column) as $s->aggregation" . '_' . $s->column));
         }
