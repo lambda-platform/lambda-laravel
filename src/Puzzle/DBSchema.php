@@ -3,8 +3,6 @@
 namespace Lambda\Puzzle;
 
 use DB;
-use function Lambda\Puzzle\Views\dd;
-use function Lambda\Puzzle\Views\env;
 
 trait DBSchema
 {
