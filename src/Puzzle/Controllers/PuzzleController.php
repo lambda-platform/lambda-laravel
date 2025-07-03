@@ -246,4 +246,8 @@ class PuzzleController extends Controller
         $krud = DB::table('krud')->where('id', $id)->first();
         return response()->json($krud);
     }
+
+    function dbBackUp(){
+
+    }
 }
