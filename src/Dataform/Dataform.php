@@ -74,6 +74,8 @@ class Dataform extends Facade
                             $item = new \stdClass();
                             $item->model = $sch->model;
                             $item->parent = $sch->parent;
+                            $item->callTriggerNamespace = isset($sch->callTriggerNamespace) ? $sch->callTriggerNamespace : null;
+                            $item->callTriggerFunction = isset($sch->callTriggerFunction) ? $sch->callTriggerFunction : null;
                             $item->subForms = $f->getFormSubTables($sch, $item);
                             $subforms[] = $item;
                         } elseif ($sch->formType == 'SubForm') {
@@ -81,6 +83,8 @@ class Dataform extends Facade
                             $item = new \stdClass();
                             $item->model = $sch->model;
                             $item->parent = $sch->parent;
+                            $item->callTriggerNamespace = isset($sch->callTriggerNamespace) ? $sch->callTriggerNamespace : null;
+                            $item->callTriggerFunction = isset($sch->callTriggerFunction) ? $sch->callTriggerFunction : null;
                             $subforms[] = $item;
                         }
                     }
@@ -405,7 +409,13 @@ class Dataform extends Facade
         //dd($r);
         if ($r) {
             foreach ($submodels as $sub) {
-                $r->{$sub->model} = DB::table($sub->model)->where($sub->parent, $r->{$this->dbSchema->identity})->get();
+                $qr = DB::table($sub->model)->where($sub->parent, $r->{$this->dbSchema->identity});
+                if($sub->callTriggerNamespace && $sub->callTriggerFunction){
+                    $qr = $this->execTrigger($sub->callTriggerNamespace, $sub->callTriggerFunction, $qr);
+                }
+                $r->{$sub->model} = $qr->get();
+
+//                $r->{$sub->model} = DB::table($sub->model)->where($sub->parent, $r->{$this->dbSchema->identity})->get();
                 if (isset($sub->subForms)) {
                     //fetching data
                     foreach ($r->{$sub->model} as $subFormTableData) {
