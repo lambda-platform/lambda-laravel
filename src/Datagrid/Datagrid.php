@@ -388,7 +388,7 @@ class Datagrid extends Facade
         if (isset($this->dbSchema->softDelete) && $this->dbSchema->softDelete) {
             $this->qr = $this->qr->where($this->dbSchema->model . '.deleted_at', null);
         }
-        //Tag select
+
         //Tag select
         $this->filter();
         $this->search();
