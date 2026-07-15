@@ -22,6 +22,11 @@ class PuzzleController extends Controller
         $config = Config::get('lambda');
         $user_fields = $config['user_data_fields'];
         $email_templates = null;
+
+        if(isset($lambda_check) && $lambda_check == true && isset($lambda_check_role) && $lambda_check_role != \auth()->user()->role){
+            return redirect()->to('/auth/login');
+        }
+
         if(isset($config['has_email_template'])) {
             $email_templates = DB::table('public.content_template')->where('type', 'И-мэйл загвар')->get();
         }
