@@ -22,7 +22,7 @@ jobs:
       matrix:
         php: ['8.1', '8.2', '8.3']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -43,7 +43,7 @@ jobs:
     # and guzzlehttp/psr7 are upgraded in composer.lock, so new advisories fail the build.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: shivammathur/setup-php@v2
         with:
@@ -58,7 +58,7 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -76,7 +76,7 @@ jobs:
     container:
       image: semgrep/semgrep:1.100.0
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Findings are published to the Security > Code scanning tab instead of failing the build,
       # because the existing code base still has known findings.
@@ -98,7 +98,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Blocks PRs that introduce new vulnerable dependencies
       - uses: actions/dependency-review-action@v4
         with:
