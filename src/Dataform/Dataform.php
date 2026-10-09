@@ -19,7 +19,6 @@ class Dataform extends Facade
     use FileManager;
     use Validate;
     use Utils;
-    use CustomUtils;
 
 //    use FormEmail;
 
@@ -115,8 +114,6 @@ class Dataform extends Facade
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
                 //$data = $f->validateFormRequest();
-                //Custom trigger
-                //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
 
                 DB::table($sf->model)->where($sf->parent, $parentID)->delete();
 
