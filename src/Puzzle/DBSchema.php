@@ -13,8 +13,8 @@ trait DBSchema
         $tables_ = [];
         $views_ = [];
 
-        if (env('DB_CONNECTION') == 'sqlsrv') {
-            $tables = DB::select(DB::raw('SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME'));
+        if (self::dbDriver() == 'sqlsrv') {
+            $tables = DB::select('SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME');
             foreach ($tables as $t) {
                 $key = 'TABLE_NAME';
                 $tableName = $t->$key;
@@ -27,13 +27,13 @@ trait DBSchema
                     }
                 }
             }
-        } else if (env('DB_CONNECTION') == 'pgsql') {
+        } else if (self::dbDriver() == 'pgsql') {
             $ignore_tables = ['information_schema'];
             $ignore_schemas = ["'information_schema'", "'pg_catalog'"];
             $databaseName = config()->get('database.connections.mysql.database');
 
             $qrStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_schema <> all(ARRAY[" . join(",", $ignore_schemas) . "]) ORDER BY TABLE_NAME";
-            $tables = DB::select(DB::raw($qrStr));
+            $tables = DB::select($qrStr);
 
             foreach ($tables as $t) {
                 $schemaKey = 'table_schema';
@@ -48,7 +48,7 @@ trait DBSchema
                     }
                 }
             }
-        } else if (env('DB_CONNECTION') == 'mongodb') {
+        } else if (self::dbDriver() == 'mongodb') {
             $dbName = DB::connection('mongodb')->getMongoDB()->getDatabaseName();
             $cursors = DB::connection('mongodb')->getMongoClient()->{$dbName}->listCollections();
             foreach ($cursors as $collection) {
@@ -84,9 +84,9 @@ trait DBSchema
     {
         $data = [];
         try {
-            if (env('DB_CONNECTION') == 'sqlsrv') {
-                $dataname = env('DB_DATABASE');
-                $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$table'"));
+            if (self::dbDriver() == 'sqlsrv') {
+                $dataname = self::dbName();
+                $data = DB::select("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?", [$table]);
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
@@ -111,15 +111,15 @@ trait DBSchema
                 }
             }
 
-            if (env('DB_CONNECTION') == 'pgsql') {
-                $dataname = env('DB_DATABASE');
+            if (self::dbDriver() == 'pgsql') {
+                $dataname = self::dbName();
                 $tableWithSchema = explode('.', $table);
 
                 $tableName = end($tableWithSchema);
                 $tableSchema = $tableWithSchema[0];
 
-                $qr = "SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '$tableSchema' AND TABLE_NAME = '$tableName'";
-                $data = DB::select(DB::raw($qr));
+                $qr = "SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
+                $data = DB::select($qr, [$tableSchema, $tableName]);
 
                 if ($data) {
                     $newData = [];
@@ -140,7 +140,7 @@ trait DBSchema
                 return $data;
             }
 
-            if (env('DB_CONNECTION') == 'mongodb') {
+            if (self::dbDriver() == 'mongodb') {
                 $col = DB::collection($table)->first();
                 if($col){
                     $newData = [];
@@ -161,7 +161,8 @@ trait DBSchema
 
             $data = DB::select("show fields from $table");
         } catch (\Exception $e) {
-            dd($e);
+            report($e);
+            return [];
         }
 
         if ($data) {
@@ -182,6 +183,16 @@ trait DBSchema
         if ($data) {
             return $data;
         }
+    }
+
+    private static function dbDriver()
+    {
+        return DB::connection()->getDriverName();
+    }
+
+    private static function dbName()
+    {
+        return config('database.connections.' . config('database.default') . '.database');
     }
 
     public static function getDBSchema()

@@ -93,6 +93,10 @@ class Notify extends Facade
 
     static function sendNotification($receivers, $msg)
     {
+        if (empty($receivers) || !config('services.fcm.key')) {
+            return;
+        }
+
         $fields = [
             'registration_ids' => $receivers,
             'data' => $msg
@@ -100,7 +104,7 @@ class Notify extends Facade
 
         $headers =
             [
-                'Authorization: key=AIzaSyDPHOFFQy7fWC14Vncn7sC7o0mEztpXzE4',
+                'Authorization: key=' . config('services.fcm.key'),
                 'Content-Type: application/json'
             ];
 

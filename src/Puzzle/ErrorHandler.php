@@ -6,7 +6,6 @@ trait ErrorHandler
 {
     public static function handleError($e)
     {
-        dd('error');
         $dbCode = trim($e->getCode());
 
         switch ($dbCode) {
@@ -16,5 +15,7 @@ trait ErrorHandler
             default:
                 $errorMessage = 'database invalid';
         }
+
+        return $errorMessage;
     }
 }

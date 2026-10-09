@@ -4,7 +4,6 @@ namespace Lambda\Dataform\Helper;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use function MongoDB\BSON\toJSON;
 
 class ConfigHelper
 {
@@ -13,7 +12,7 @@ class ConfigHelper
         //Get the data from settings table
             $config = null;
             try {
-                if (env('DB_CONNECTION') == 'pgsql') {
+                if (DB::connection()->getDriverName() == 'pgsql') {
                     $config = DB::table('public.api_config')->where('code', '10012')->first();
                 } else {
                     $config = DB::table('api_config')->where('code', '10012')->first();
@@ -65,7 +64,7 @@ class ConfigHelper
 
          config(['mail.mailers.smtp' => $mailConfig]);
          config(['mail.from' => $mailFromConfig]);
-         Log::info('EMAIL - config SMPT:',$mailConfig);
+         Log::info('EMAIL - config SMTP:', \Illuminate\Support\Arr::except($mailConfig, ['password']));
          Log::info('EMAIL - config FROM:',$mailFromConfig);
         // dd(config('mail.mailers'));
      }

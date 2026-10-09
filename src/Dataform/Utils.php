@@ -107,7 +107,7 @@ trait Utils
         if(isset($this->dbSchema->triggers->cache_clear_url) && $this->dbSchema->triggers->cache_clear_url) {
             $config = null;
 
-            if (env('DB_CONNECTION') == 'pgsql') {
+            if (DB::connection()->getDriverName() == 'pgsql') {
                 $config = DB::table('public.api_config')->where('code', '10011')->first();
             } else {
                 $config = DB::table('api_config')->where('code', '10011')->first();
@@ -124,7 +124,8 @@ trait Utils
                             CURLOPT_RETURNTRANSFER => true,
                             CURLOPT_ENCODING => "",
                             CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_CONNECTTIMEOUT => 5,
+                            CURLOPT_TIMEOUT => 15,
                             CURLOPT_FOLLOWLOCATION => true,
                             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                             CURLOPT_SSL_VERIFYHOST => false,

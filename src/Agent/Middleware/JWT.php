@@ -5,7 +5,6 @@ namespace Lambda\Agent\Middleware;
 use Closure;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
-use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Http\Middleware\BaseMiddleware;
 
@@ -33,12 +32,7 @@ class JWT extends BaseMiddleware
             try {
                 JWTAuth::setToken($token)->authenticate();
             } catch (\Exception $e) {
-                if ($e instanceof TokenInvalidException) {
-                    $status = 401;
-                    $message = 'This token is invalid. Please Login';
-                    return $next($request);
-                    //return response()->json(compact('status', 'message'), 401);
-                } else if ($e instanceof TokenExpiredException) {
+                if ($e instanceof TokenExpiredException) {
                     try {
                         $refreshed = JWTAuth::refresh(JWTAuth::getToken());
                         JWTAuth::setToken($refreshed)->toUser();
@@ -50,8 +44,8 @@ class JWT extends BaseMiddleware
                         ]);
                     }
                 } else {
-                    $message = 'Authorization Token not found';
-                    return response()->json(compact('message'), 401);
+                    // Invalid, blacklisted or otherwise unusable token
+                    return $this->unauthorized();
                 }
             }
         }
