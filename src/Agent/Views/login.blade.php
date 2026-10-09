@@ -8,6 +8,7 @@
     <link rel="icon" type="image/png" href="{{ config('lambda.favicon') }}">
     <link href="https://fonts.googleapis.com/css?family=Roboto+Condensed:300,400,700|Roboto:300,400,500,700,900&amp;subset=cyrillic-ext"
           rel="stylesheet">
+    <link href="{{ config('lambda.favicon')}}" rel="icon"/>
     <title>{{ config('lambda.title') }}</title>
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/vendor.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/auth.css') }}">
