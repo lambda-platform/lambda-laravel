@@ -3,6 +3,7 @@
 namespace Lambda\Krud\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Lambda\Dataform\Dataform;
 use Lambda\Datagrid\Datagrid;
 
@@ -15,7 +16,12 @@ class KrudController extends Controller
 
     public function delete($schema, $id)
     {
-        if (Datagrid::exec('delete', $schema, $id)) {
+        $result = Datagrid::exec('delete', $schema, $id);
+        if (isset($result->ignore_exec)) {
+            return response()->json($result->response);
+        }
+
+        if ($result) {
             return response()->json(['status' => true]);
         }
 
@@ -35,9 +41,10 @@ class KrudController extends Controller
     {
         return Dataform::upload();
     }
+
     public function fileUploadTinyMce()
     {
-        return response()->json(["location"=> Dataform::upload()]);
+        return response()->json(["location" => Dataform::upload()]);
     }
 
     public function checkUnique()
@@ -58,5 +65,12 @@ class KrudController extends Controller
     public function print($schemaID)
     {
         return Datagrid::exec('print', $schemaID);
+    }
+
+    public function excelImport(Request $request)
+    {
+        $file = $request->get('excelFile');
+        $schemaID = $request->get('schemaID');
+        return Datagrid::exec('excel-import', $schemaID, null, $file);
     }
 }

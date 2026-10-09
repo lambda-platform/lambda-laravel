@@ -24,6 +24,9 @@ class LambdaServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/Puzzle/routes.php');
         $this->loadRoutesFrom(__DIR__ . '/Krud/routes.php');
         $this->loadRoutesFrom(__DIR__ . '/Process/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Notify/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Translation/routes.php');
+        $this->loadRoutesFrom(__DIR__ . '/Dataform/Editor/routes.php');
 
         $this->publishes([
             __DIR__ . '/config/lambda-config.php' => config_path('lambda.php'),

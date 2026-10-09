@@ -1,22 +1,9 @@
 <?php
 
-Route::namespace('Lambda\Agent\Controllers')
-    ->prefix('agent')
-    ->group(function ($router) {
-        $router->get('/', 'AgentController@index');
-        $router->get('users', 'AgentController@getUsers');
-        $router->get('deletedusers', 'AgentController@getDeletedUsers');
-        $router->get('users/show/{id}', 'AgentController@show')->middleware('jwt');
-        $router->post('users/create', 'AgentController@store');
-        $router->post('users/upload', 'AgentController@upload')->middleware('jwt');
-        $router->patch('users/store/{id}', 'AgentController@update');
-        $router->delete('users/destroy/{id}', 'AgentController@destroy');
-        $router->delete('users/forceDestroy/{id}', 'AgentController@forceDelete');
-        $router->get('users/restore/{id}', 'AgentController@restore');
-        $router->get('wizard', 'AgentController@wizard')->middleware(['jwt', 'web']);
-        $router->post('wizard/create', 'ProfileController@store')->middleware(['jwt', 'web']);
-        $router->get('profile/{id}', 'ProfileController@show')->middleware(['jwt', 'web']);
-    });
+use Illuminate\Support\Facades\Config;
+
+$config = Config::get('lambda');
+$adminMiddleware = (isset($config['lambda_access']) && $config['lambda_access']) ? 'jwt:' . $config['lambda_access'] : 'jwt';
 
 // Authenticating
 Route::namespace('Lambda\Agent\Controllers')
@@ -24,27 +11,19 @@ Route::namespace('Lambda\Agent\Controllers')
     ->group(function ($router) {
         $router->match(['get', 'post'], 'login', 'AuthController@login');
         $router->get('/', 'AuthController@login');
-        $router->get('/{any}', 'AuthController@login');
         $router->post('logout', 'AuthController@logout');
         $router->post('refresh', 'AuthController@refresh');
         $router->get('me', 'AuthController@me');
-        $router->get('check', 'RoleController@checkRoleAndRedirect');
-        $router->post('password-reset', 'PasswordController@passwordReset');
-        $router->post('send-forgot-mail', 'PasswordController@sendMail')->name('sendMail');
+        $router->post('password-reset', 'PasswordController@passwordReset')->middleware('throttle:10,1');
+        $router->post('send-forgot-mail', 'PasswordController@sendMail')->middleware('throttle:5,1')->name('sendMail');
+        // Catch-all must stay last so it doesn't shadow the routes above
+        $router->get('/{any}', 'AuthController@login');
     });
 
-//Pages
-Route::namespace('Lambda\Agent\Controllers')
-    ->prefix('pages')
-    ->middleware(['jwt'])
-    ->group(function ($router) {
-        $router->get('/', 'PagesController@index');
-        $router->get('/moqup/{id}', 'PagesController@moqup');
-    });
-
-//Agent routes
+//Agent routes (user management)
 Route::namespace('Lambda\Agent\Controllers')
     ->prefix('agent')
+    ->middleware([$adminMiddleware])
     ->group(function ($router) {
         $router->get('/users/{type?}', 'AgentController@getUsers');
         $router->get('/user/{id}', 'AgentController@getUser');

@@ -39,7 +39,7 @@ class MenuRequest extends FormRequest
             case 'PUT':
             case 'PATCH': {
                 return [
-                    'name' => 'required|max:255'.Rule::unique('menus', 'name')->ignore($this->id),
+                    'name' => ['required', 'max:255', Rule::unique('menus', 'name')->ignore($this->id)],
 //                    'role_list' => 'required'
                 ];
             }

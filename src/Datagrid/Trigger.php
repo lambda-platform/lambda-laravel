@@ -2,6 +2,8 @@
 
 namespace Lambda\Datagrid;
 
+use Illuminate\Support\Facades\DB;
+
 trait Trigger
 {
     //For specific ID
@@ -17,16 +19,16 @@ trait Trigger
         }
 
         switch ($action) {
+            case 'excelImport':
+                return $this->execTrigger($this->dbSchema->excelUploadCustomNamespace ?? null, $this->dbSchema->excelUploadCustomTrigger ?? null, $qrOrData);
             case 'beforeFetch':
-                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->beforeFetch, $qrOrData);
+                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->beforeFetch ?? null, $qrOrData);
             case 'afterFetch':
-                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->afterFetch, $qrOrData);
-                break;
+                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->afterFetch ?? null, $qrOrData);
             case 'beforeDelete':
-                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->beforeDelete, $qrOrData, $id);
+                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->beforeDelete ?? null, $qrOrData, $id);
             case 'afterDelete':
-                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->afterDelete, $qrOrData, $id);
-                break;
+                return $this->execTrigger($this->dbSchema->triggers->namespace, $this->dbSchema->triggers->afterDelete ?? null, $qrOrData, $id);
             case 'beforePrint':
                 if (!property_exists($this->dbSchema->triggers, 'beforePrint')) {
                     return $qrOrData;
@@ -42,25 +44,71 @@ trait Trigger
             return $qrOrData;
         }
 
-        $trigger = explode('@', $trigger);
-//        dump($trigger[0]);
-        if (is_array($trigger)) {
-            if (method_exists(app($namespace . "\\" . $trigger[0]), $trigger[1])) {
-                if ($id == null) {
-                    $modified = app($namespace . "\\" . $trigger[0])->{$trigger[1]}($qrOrData);
-                    if ($modified !== null) {
-                        return $modified;
-                    }
-                } else {
-                    $modified = app($namespace . "\\" . $trigger[0])->{$trigger[1]}($qrOrData, $id);
-                    if ($modified !== null) {
-                        return $modified;
-                    }
-                }
+        if (strpos($trigger, '@') === false) {
+            return $qrOrData;
+        }
 
+        [$class, $method] = explode('@', $trigger, 2);
+        $instance = app($namespace . "\\" . $class);
+        if (method_exists($instance, $method)) {
+            $modified = $id == null ? $instance->{$method}($qrOrData) : $instance->{$method}($qrOrData, $id);
+            if ($modified !== null) {
+                return $modified;
             }
         }
 
         return $qrOrData;
+    }
+
+    public function cacheClear()
+    {
+        if(isset($this->dbSchema->triggers->cacheClearUrl) && $this->dbSchema->triggers->cacheClearUrl)
+        {
+            $config = null;
+
+            if (DB::connection()->getDriverName() == 'pgsql') {
+                $config = DB::table('public.api_config')->where('code', '10011')->first();
+            } else {
+                $config = DB::table('api_config')->where('code', '10011')->first();
+            }
+            if ($config) {
+                try {
+                    if ($config->url && $config->auth_username
+                        && $config->auth_pass) {
+                        $curl = curl_init();
+
+                        curl_setopt_array($curl, array(
+                            CURLOPT_URL => $config->url . $this->dbSchema->triggers->cacheClearUrl,
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_ENCODING => "",
+                            CURLOPT_MAXREDIRS => 10,
+                            CURLOPT_CONNECTTIMEOUT => 5,
+                            CURLOPT_TIMEOUT => 15,
+                            CURLOPT_FOLLOWLOCATION => true,
+                            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                            CURLOPT_SSL_VERIFYHOST => false,
+                            CURLOPT_SSL_VERIFYPEER => false,
+                            CURLOPT_CUSTOMREQUEST => "GET",
+                            CURLOPT_HTTPHEADER => array(
+                                'Content-Type: application/json',
+                                "Authorization: Basic " . base64_encode($config->auth_username . ":" . $config->auth_pass)
+                            ),
+                        ));
+
+                        if (!$result = curl_exec($curl)) {
+                            trigger_error(curl_error($curl));
+                        }
+
+                        curl_close($curl);
+                        if ($result == null)
+                            return 0;
+                        return $result;
+                    }
+                } catch (\Exception $ex) {
+                    return $ex->getMessage();
+                }
+            }
+        }
+        return 0;
     }
 }

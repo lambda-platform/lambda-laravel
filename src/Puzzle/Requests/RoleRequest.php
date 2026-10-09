@@ -50,8 +50,8 @@ class RoleRequest extends FormRequest
             case 'PATCH':
             {
                 return [
-                    'name' => 'required|min:3|max:35'.Rule::unique('roles', 'name')->ignore($this->id),
-                    'display_name' => 'required|min:3|max:35'.Rule::unique('roles', 'display_name')->ignore($this->id),
+                    'name' => ['required', 'min:3', 'max:35', Rule::unique('roles', 'name')->ignore($this->id)],
+                    'display_name' => ['required', 'min:3', 'max:35', Rule::unique('roles', 'display_name')->ignore($this->id)],
                     'description' => 'max:100',
                     'permissions' => 'required|array'
                 ];

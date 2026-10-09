@@ -11,8 +11,11 @@ use Lambda\Notify\Notify;
 
 class NotifyController extends Controller
 {
-    public function getNewNotifications($user)
+    public function getNewNotifications($user = null)
     {
+        // Always use the logged in user, the {user} route param is kept only for URL compatibility
+        $user = auth()->id();
+
         $unseenCount = DB::table('notification_status')
             ->where('receiver_id', $user)
             ->where('seen', 0)
@@ -28,11 +31,10 @@ class NotifyController extends Controller
 //            ->get();
 
         $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
-from tuushin_db.`notification_status` as `s`
-inner join tuushin_db.`notifications` as `n` on `n`.`id` = `s`.`notif_id`
-inner join tuushin_db.`users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
-where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
-
+from `notification_status` as `s`
+inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
+inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
+where `s`.`receiver_id` = ? order by `created_at` desc limit 30", [$user]);
 
 
         return response()->json(['count' => $unseenCount, 'notifications' => $notifications]);
@@ -41,23 +43,42 @@ where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
     public function getAllNotifications()
     {
 
-        $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
-from `notification_status` as `s`
-inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
-inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
-where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limit 30");
+//        $notifications = DB::select("select `n`.*, `u`.`first_name`, `u`.`login`, `s`.`id` as `sid`, `s`.`seen`
+//from `notification_status` as `s`
+//inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
+//inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
+//where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limit 30");
 
-//        $notifications = DB::table('notifications')
-//            ->where('receiver_id', auth()->id())
-//            ->orderBy('created_at', 'desc')
-//            ->paginate('50');
+        $notifications = DB::table('notification_status as s')
+            ->join('notifications as n', 'n.id', '=', 's.notif_id')
+            ->join('users as u', 'u.id', '=', 'n.sender')
+            ->select('n.*', 'u.first_name', 'u.login', 's.id as sid', 's.seen')
+            ->where('s.receiver_id', auth()->id())
+            ->orderBy('n.created_at', 'desc')
+            ->paginate('50');
         return response()->json($notifications);
+    }
+
+    public function setSeenAll()
+    {
+        $r = DB::table('notification_status')
+            ->where('receiver_id', auth()->id())
+            ->where('seen', false)
+            ->update([
+                'seen' => true,
+                'seen_time' => Carbon::now()
+            ]);
+        if ($r) {
+            return response()->json(['status' => true]);
+        }
+        return response()->json(['status' => false]);
     }
 
     function setSeen($id)
     {
         $r = DB::table('notification_status')
             ->where('notif_id', $id)
+            ->where('receiver_id', auth()->id())
             ->update([
                 'seen' => true,
                 'seen_time' => Carbon::now()
@@ -70,31 +91,14 @@ where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limi
 
     function setToken($userId, $token)
     {
+        // Users can only set their own push token
         $r = DB::table('users')
-            ->where('id', $userId)
+            ->where('id', auth()->id())
             ->update([
                 'token' => $token
             ]);
 
-        if ($r) {
-            return response()->json(['status' => true]);
-        }
-    }
-
-    function test()
-    {
-        $data = [
-            'title' => 'lambda notification',
-            'body' => 'lambda notification msg body',
-            'link' => 'http://luna.test',
-            'users' => [189, 86]
-        ];
-
-
-        $client = new Client(new Version2X('http://localhost:3000'));
-        $client->initialize();
-        $client->emit('notify', $data);
-        $client->close();
+        return response()->json(['status' => (bool)$r]);
     }
 
     function fcm()
@@ -102,7 +106,7 @@ where `s`.`receiver_id` = '" . auth()->id() . "' order by `created_at` desc limi
         $receivers = [];
 
         $users = DB::table('users')->whereNotNull('token')->get();
-        foreach ($users as $u){
+        foreach ($users as $u) {
             array_push($receivers, $u->token);
         }
 

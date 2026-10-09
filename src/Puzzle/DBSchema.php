@@ -3,7 +3,6 @@
 namespace Lambda\Puzzle;
 
 use DB;
-use Illuminate\Support\Facades\Schema;
 
 trait DBSchema
 {
@@ -14,8 +13,8 @@ trait DBSchema
         $tables_ = [];
         $views_ = [];
 
-        if (env('DB_CONNECTION') == 'sqlsrv') {
-            $tables = DB::select(DB::raw('SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME'));
+        if (self::dbDriver() == 'sqlsrv') {
+            $tables = DB::select('SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES ORDER BY TABLE_NAME');
             foreach ($tables as $t) {
                 $key = 'TABLE_NAME';
                 $tableName = $t->$key;
@@ -28,18 +27,19 @@ trait DBSchema
                     }
                 }
             }
-        } else if (env('DB_CONNECTION') == 'pgsql') {
+        } else if (self::dbDriver() == 'pgsql') {
             $ignore_tables = ['information_schema'];
             $ignore_schemas = ["'information_schema'", "'pg_catalog'"];
-            $databaseName = env('DB_DATABASE', 'lambda_db');
+            $databaseName = config()->get('database.connections.mysql.database');
 
             $qrStr = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE table_schema <> all(ARRAY[" . join(",", $ignore_schemas) . "]) ORDER BY TABLE_NAME";
-            $tables = DB::select(DB::raw($qrStr));
+            $tables = DB::select($qrStr);
 
             foreach ($tables as $t) {
                 $schemaKey = 'table_schema';
                 $key = 'table_name';
                 $tableName = $t->$schemaKey . "." . $t->$key;
+
                 if (!array_search($tableName, $ignore_tables)) {
                     if ($t->table_type == 'VIEW') {
                         $views_[] = $tableName;
@@ -48,9 +48,15 @@ trait DBSchema
                     }
                 }
             }
+        } else if (self::dbDriver() == 'mongodb') {
+            $dbName = DB::connection('mongodb')->getMongoDB()->getDatabaseName();
+            $cursors = DB::connection('mongodb')->getMongoClient()->{$dbName}->listCollections();
+            foreach ($cursors as $collection) {
+                $tables_[] = $collection->getName();
+            }
         } else {
             $tables = DB::select('SHOW FULL TABLES');
-            $databaseName = env('DB_DATABASE', 'lambda_db');
+            $databaseName = config()->get('database.connections.mysql.database');
 
             foreach ($tables as $t) {
                 $key = "Tables_in_$databaseName";
@@ -76,13 +82,11 @@ trait DBSchema
      * */
     public static function tableMeta($table)
     {
-        $data = null;
         $data = [];
         try {
-            if (env('DB_CONNECTION') == 'sqlsrv') {
-                $dataname = env('DB_DATABASE');
-                $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$table'"));
-
+            if (self::dbDriver() == 'sqlsrv') {
+                $dataname = self::dbName();
+                $data = DB::select("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ?", [$table]);
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
@@ -107,16 +111,19 @@ trait DBSchema
                 }
             }
 
-            if (env('DB_CONNECTION') == 'pgsql') {
-                $dataname = env('DB_DATABASE');
+            if (self::dbDriver() == 'pgsql') {
+                $dataname = self::dbName();
                 $tableWithSchema = explode('.', $table);
-                $tableName = end($tableWithSchema);
 
-                $data = DB::select(DB::raw("SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '$tableName'"));
+                $tableName = end($tableWithSchema);
+                $tableSchema = $tableWithSchema[0];
+
+                $qr = "SELECT * FROM  $dataname.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
+                $data = DB::select($qr, [$tableSchema, $tableName]);
+
                 if ($data) {
                     $newData = [];
                     foreach ($data as $dcolumn) {
-                        $type = '';
                         $newData[] = [
                             'model' => $dcolumn->column_name,
                             'title' => $dcolumn->column_name,
@@ -125,6 +132,7 @@ trait DBSchema
                             'key' => $dcolumn->dtd_identifier == 1 ? 'PRI' : '',
                         ];
                     }
+
                     return $newData;
                 } else {
                     return $data;
@@ -132,9 +140,29 @@ trait DBSchema
                 return $data;
             }
 
+            if (self::dbDriver() == 'mongodb') {
+                $col = DB::collection($table)->first();
+                if($col){
+                    $newData = [];
+                    foreach ($col as $key => $val){
+                        $newData[] = [
+                            'model' => $key,
+                            'title' => $key,
+                            'dbType' => 'text',
+                            'table' => $table,
+                            'key' => ''
+                        ];
+                    }
+                    return $newData;
+                }
+
+                return $data;
+            }
+
             $data = DB::select("show fields from $table");
         } catch (\Exception $e) {
-            dd($e);
+            report($e);
+            return [];
         }
 
         if ($data) {
@@ -155,6 +183,16 @@ trait DBSchema
         if ($data) {
             return $data;
         }
+    }
+
+    private static function dbDriver()
+    {
+        return DB::connection()->getDriverName();
+    }
+
+    private static function dbName()
+    {
+        return config('database.connections.' . config('database.default') . '.database');
     }
 
     public static function getDBSchema()

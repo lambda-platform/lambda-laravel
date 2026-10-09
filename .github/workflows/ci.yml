@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master, dev]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  best-practice:
+    name: Lint & best practice (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json
+        run: composer validate --no-check-publish --no-check-lock
+
+      - name: Lint and best-practice checks
+        run: bash .github/scripts/best-practice.sh src
+
+  dependency-audit:
+    name: Composer security audit
+    runs-on: ubuntu-latest
+    # TODO: remove once phpoffice/phpspreadsheet, dompdf (barryvdh/laravel-dompdf 2.0.0 pin)
+    # and guzzlehttp/psr7 are upgraded in composer.lock, so new advisories fail the build.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: composer audit (composer.lock)
+        run: composer audit --locked --no-interaction --abandoned=report
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Scans only the commits in this push / PR
+      - uses: trufflesecurity/trufflehog@v3.88.0
+        with:
+          extra_args: --results=verified,unknown
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    container:
+      image: semgrep/semgrep:1.100.0
+    steps:
+      - uses: actions/checkout@v4
+
+      # Findings are published to the Security > Code scanning tab instead of failing the build,
+      # because the existing code base still has known findings.
+      - name: Run semgrep
+        run: semgrep scan --config p/php --config p/secrets --sarif --output semgrep.sarif src || true
+
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      # Blocks PRs that introduce new vulnerable dependencies
+      - uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

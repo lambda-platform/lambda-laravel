@@ -16,26 +16,25 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Str;
 
 class PasswordController extends Controller
 {
     function sendMail()
     {
         $config = Config::get('lambda');
-        $lang = Request::input('lang');
-
-        $static_words = $config['static_words'][$lang];
-        $email = strtolower(Request::input('email'));
-
-        $user = DB::table('users')->where('email', $email)->first();
+        $static_words = $this->staticWords($config, Request::input('lang'));
+        $email = strtolower((string)Request::input('email'));
 
         if (!$email) {
             return response()->json(['status' => false, 'error' => $static_words['emailRequired']], 401);
         }
 
+        $user = DB::table('users')->where('email', $email)->first();
+
         if ($user) {
-            $permitted_chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-            $token_pre = substr(str_shuffle($permitted_chars), 0, 8);
+            // Cryptographically secure reset code
+            $token_pre = Str::random(8);
             $token = bcrypt($token_pre);
 
             DB::table("password_resets")->where('email', $email)->delete();
@@ -56,21 +55,18 @@ class PasswordController extends Controller
         } else {
             return response()->json(['status' => false, 'error' => $static_words['userNotFound']], 401);
         }
-
-
     }
 
     public function passwordReset()
     {
         $code = Request::input('code');
-        $email = Request::input('email');
+        $email = strtolower((string)Request::input('email'));
         $password = Request::input('password');
         $password_confirm = Request::input('password_confirm');
         $config = Config::get('lambda');
-        $lang = Request::input('lang');
 
-        $static_words = $config['static_words'][$lang];
-        $password_reset_time_out = $config['password_reset_time_out'];
+        $static_words = $this->staticWords($config, Request::input('lang'));
+        $password_reset_time_out = $config['password_reset_time_out'] ?? 30;
 
         $reset = DB::table("password_resets")->where('email', $email)->first();
         $user = DB::table('users')->where('email', $email)->first();
@@ -79,10 +75,9 @@ class PasswordController extends Controller
             return response()->json(['status' => false, 'error' => $static_words['passwordResetCodeRequired']], 401);
 
         $now = \Carbon\Carbon::now();
-        $create_at = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $reset->created_at);
+        $create_at = \Carbon\Carbon::parse($reset->created_at);
 
-
-        $diff_in_minutes = $now->diffInMinutes($create_at);
+        $diff_in_minutes = abs($now->diffInMinutes($create_at));
         if ($password_reset_time_out >= $diff_in_minutes) {
             if (Hash::check($code, $reset->token)) {
                 if ($password && $password_confirm && $password == $password_confirm) {
@@ -110,5 +105,12 @@ class PasswordController extends Controller
 
     }
 
-
+    private function staticWords($config, $lang)
+    {
+        $words = $config['static_words'] ?? [];
+        if (isset($words[$lang])) {
+            return $words[$lang];
+        }
+        return reset($words) ?: [];
+    }
 }
