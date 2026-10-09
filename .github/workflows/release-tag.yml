@@ -1,0 +1,82 @@
+name: Release tag
+
+# When a PR is merged into master, create the next semver tag (vX.Y.Z) and a GitHub release.
+# Packagist picks up the new tag automatically.
+#
+# Version bump is chosen by PR label:
+#   release:major  -> v2.0.0
+#   release:minor  -> v1.3.0
+#   (none)         -> v1.2.10   (patch, default)
+#   release:skip   -> no tag
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [master]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-tag
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    if: >-
+      github.event.pull_request.merged == true &&
+      !contains(github.event.pull_request.labels.*.name, 'release:skip')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: version
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          git fetch --tags --force
+          latest=$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | head -n1)
+          latest=${latest:-v0.0.0}
+          IFS=. read -r major minor patch <<< "${latest#v}"
+
+          case ",$LABELS," in
+            *,release:major,*) major=$((major + 1)); minor=0; patch=0 ;;
+            *,release:minor,*) minor=$((minor + 1)); patch=0 ;;
+            *)                 patch=$((patch + 1)) ;;
+          esac
+
+          next="v${major}.${minor}.${patch}"
+          if git rev-parse -q --verify "refs/tags/$next" >/dev/null; then
+            echo "::error::Tag $next already exists"
+            exit 1
+          fi
+          echo "Latest: $latest -> Next: $next"
+          echo "previous=$latest" >> "$GITHUB_OUTPUT"
+          echo "next=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Create tag
+        env:
+          TAG: ${{ steps.version.outputs.next }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG: $PR_TITLE (#$PR_NUMBER)"
+          git push origin "$TAG"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.next }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+        run: |
+          args=(--title "$TAG" --generate-notes --verify-tag)
+          if git rev-parse -q --verify "refs/tags/$PREVIOUS" >/dev/null; then
+            args+=(--notes-start-tag "$PREVIOUS")
+          fi
+          gh release create "$TAG" "${args[@]}"
