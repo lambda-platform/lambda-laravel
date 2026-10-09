@@ -30,8 +30,12 @@ class Datagrid extends Facade
         if (!$this->dbSchema) {
             $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'grid')->where('id', $schemaID)->first();
         }
+        if (!$this->dbSchema) {
+            abort(404, 'Grid schema not found');
+        }
 
         $this->title = $this->dbSchema->name;
+        $driver = DB::connection()->getDriverName();
         $this->dbSchema = json_decode($this->dbSchema->schema);
         $this->schema = $this->dbSchema->schema;
         $this->qr = DB::table($this->dbSchema->model);
@@ -43,10 +47,10 @@ class Datagrid extends Facade
             } else {
                 if (isset($s->gridType)) {
                     if (($s->gridType == 'Tag') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
-                        if (env('DB_CONNECTION') == 'pgsql') {
+                        if ($driver == 'pgsql') {
                             $sql = '(select ARRAY_TO_STRING(ARRAY_AGG(' . $s->relation->fields . ' ORDER BY ' . $s->relation->fields . '),\', \') FROM ' . $s->relation->table . ' WHERE STRING_TO_ARRAY(' . $s->relation->key . '::VARCHAR,\',\') && STRING_TO_ARRAY(' . $s->model . ',\',\')) as ' . $s->model;
                         } else {
-                            if (env('DB_CONNECTION') == 'sqlsrv') {
+                            if ($driver == 'sqlsrv') {
                                 $sql = "(SELECT STRING_AGG(G." . $s->relation->fields . ", ', ') FROM " . $s->relation->table . " G JOIN STRING_SPLIT(" . $this->dbSchema->model . "." . $s->model . ", ',') s ON TRY_CAST(s.value AS INT) = G." . $s->relation->key . ") AS " . $s->model;
                             } else {
                                 $sql = '(SELECT group_concat(' . $s->relation->fields . ') FROM ' . $s->relation->table . ' WHERE ' . $s->relation->key . ' IN (SELECT (SUBSTRING_INDEX(SUBSTRING_INDEX(B.' . $s->model . ", ',', NS.n), ',', -1)) AS tag FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8 UNION ALL SELECT 9 UNION ALL SELECT 10) NS INNER JOIN " . $this->dbSchema->model . ' B ON NS.n <= CHAR_LENGTH(B.' . $s->model . ') - CHAR_LENGTH(REPLACE(B.' . $s->model . ", ',', '')) + 1 WHERE B." . $s->relation->key . "=" . $this->dbSchema->model . '.' . $s->relation->key . ')) as ' . $s->model;
@@ -57,7 +61,7 @@ class Datagrid extends Facade
                     }
 
                     if (($s->gridType == 'Select') && property_exists($s->relation, 'table') && property_exists($s->relation, 'fields') && $s->relation->table !== null) {
-                        if (env('DB_CONNECTION') == 'sqlsrv') {
+                        if ($driver == 'sqlsrv') {
                             if (isset($s->relation->filter) && $s->relation->filter != '' && $s->relation->filter != null) {
                                 $sql = '(SELECT TOP 1' . $s->relation->fields . ' FROM ' . $s->relation->table . ' WHERE ' . $s->relation->filter . ' AND ' . $s->relation->key . ' IN (' . $s->model . ')) as ' . $s->model;
                             } else {
@@ -144,6 +148,7 @@ class Datagrid extends Facade
 
     public function sort($model, $order = 'desc')
     {
+        $order = in_array(strtolower((string)$order), ['asc', 'desc'], true) ? $order : 'desc';
         if ($model != null && $model != '' && $model != "null") {
             $this->qr = $this->qr->orderBy($model, $order);
         }
@@ -172,7 +177,6 @@ class Datagrid extends Facade
     public function filter()
     {
         $user_condition = request()->get('user_condition');
-        //dd($user_condition);
         if ($user_condition) {
             if (Auth::user()) {
                 $user = Auth::user();
@@ -185,7 +189,6 @@ class Datagrid extends Facade
 
         $this->customFilter();
 
-//        dd('... filter');
         foreach ($this->schema as $s) {
             if ($s->filterable && request()->get($s->model) != null && request()->get($s->model) != '') {
 
@@ -201,13 +204,13 @@ class Datagrid extends Facade
 //                        }
                             break;
                         case 'DateRange':
-                            $betweenDates = request()->get($s->model);
+                            $betweenDates = array_pad(explode(',', request()->get($s->model)), 2, '');
                             if ($betweenDates[0] != '' && $betweenDates[1] != '') {
                                 $this->qr = $this->qr->whereBetween($s->model, $betweenDates);
                             }
                             break;
                         case 'DateRangeDouble':
-                            $betweenDates = request()->get($s->model);
+                            $betweenDates = array_pad(explode(',', request()->get($s->model)), 2, '');
                             if ($betweenDates[0] != '' && $betweenDates[1] != '') {
                                 $this->qr = $this->qr->whereBetween($s->model, $betweenDates);
                             }
@@ -222,7 +225,7 @@ class Datagrid extends Facade
                             break;
                         case 'Tag':
                             $this->qr = $this->qr->where(function ($query) use ($s) {
-                                $query->whereRaw("find_in_set('" . request()->get($s->model) . "'," . $s->model . ")");
+                                $query->whereRaw("find_in_set(?, " . $s->model . ")", [request()->get($s->model)]);
                             });
                             break;
                         case 'Select':
@@ -230,7 +233,7 @@ class Datagrid extends Facade
                             break;
                         default:
                             $value = str_replace('*', '%', request()->get($s->model));
-                            if (strpos($value, '%') == false) {
+                            if (strpos($value, '%') === false) {
                                 $value = $value . '%';
                             }
                             $this->qr = $this->qr->whereRaw('LOWER(' . $s->model . ') like ?', [strtolower($value)]);
@@ -304,10 +307,12 @@ class Datagrid extends Facade
         }
 
         if ($filter['filterType'] == 'date') {
+            $filter['dateFrom'] = $filter['dateFrom'] ?? null;
+            $filter['dateTo'] = $filter['dateTo'] ?? null;
             if ($filter['dateFrom'] != null && isset($filter['type'])) {
                 switch ($filter['type']) {
                     case 'equals':
-                        $this->qr = $this->qr->whereRaw('DATE(' . $model . ') = "' . $filter['dateFrom'] . '"');
+                        $this->qr = $this->qr->whereDate($model, '=', $filter['dateFrom']);
                         break;
                     case 'notEqual':
                         $this->qr = $this->qr->where($model, '!=', $filter['dateFrom']);
@@ -329,13 +334,15 @@ class Datagrid extends Facade
                 $this->qr = $this->qr->where($model, '<=', $filter['dateTo']);
             }
         } elseif ($filter['filterType'] == 'set') {
-//            if(is_array($filter['values']) && count($filter['values']) > 0){
-            $this->qr = $this->qr->whereIn($model, $filter['values']);
-//            }
+            if (isset($filter['values']) && is_array($filter['values'])) {
+                $this->qr = $this->qr->whereIn($model, $filter['values']);
+            }
         } else {
             if (!isset($filter['type'])) {
                 return;
             }
+            $filter['filter'] = (string)($filter['filter'] ?? '');
+            $filter['filterTo'] = $filter['filterTo'] ?? null;
 
             if (strpos($filter['filter'], '*') !== false) {
                 $value = str_replace('*', '%', $filter['filter']);
@@ -393,7 +400,6 @@ class Datagrid extends Facade
         $this->filter();
         $this->search();
         if (isset($this->dbSchema->condition)) {
-            //dd($this->dbSchema->condition);
             $this->qr = $this->qr->whereRaw($this->dbSchema->condition);
         }
         return $this->qr->get();
@@ -402,8 +408,14 @@ class Datagrid extends Facade
     public function buildAggergation($schemaID)
     {
         $this->dbSchema = DB::table('vb_schemas')->where('id', (int)$schemaID)->first();
+        if (!$this->dbSchema) {
+            $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'grid')->where('id', $schemaID)->first();
+        }
+        if (!$this->dbSchema) {
+            abort(404, 'Grid schema not found');
+        }
         $this->dbSchema = json_decode($this->dbSchema->schema);
-        $columnAggregations = $this->dbSchema->columnAggregations;
+        $columnAggregations = $this->dbSchema->columnAggregations ?? [];
 
         $this->schema = $this->dbSchema->schema;
         $this->qr = DB::table($this->dbSchema->model);
@@ -445,7 +457,7 @@ class Datagrid extends Facade
         $excelFile = Excel::raw(new ExportExcel($this->qr, $this->excelHeader), \Maatwebsite\Excel\Excel::XLSX);
 
         $response = [
-            'name' => $this->title . '-' . Carbon::today() . '.xlsx',
+            'name' => $this->title . '-' . Carbon::today()->toDateString() . '.xlsx',
             'file' => base64_encode($excelFile),
         ];
         return response()->json($response);
@@ -463,7 +475,7 @@ class Datagrid extends Facade
             $this->qr = $this->qr->whereRaw($this->dbSchema->condition);
         }
 
-        $this->qr->whereIn('id', $ids);
+        $this->qr->whereIn($this->dbSchema->model . '.' . ($this->dbSchema->identity ?? 'id'), (array)$ids);
         $data = $this->qr->get();
         return response()->json(["data" => $data, "schema" => $this->schema]);
     }
@@ -519,16 +531,19 @@ class Datagrid extends Facade
         $value = request()->get('value');
         $ids = request()->get('ids');
 
-        if ($model && $value && $ids) {
+        // Only columns defined in the grid schema may be updated (prevents e.g. role/password changes)
+        $allowedModels = array_map(function ($s) {
+            return $s->model;
+        }, (array)$this->schema);
+
+        if ($model && in_array($model, $allowedModels, true) && $value !== null && !empty($ids)) {
             $table = $this->dbSchema->model;
             if (isset($this->dbSchema->mainTable) && ($this->dbSchema->mainTable != null || $this->dbSchema->mainTable != "")) {
                 $table = $this->dbSchema->mainTable;
             }
-            foreach ($ids as $id) {
-                DB::table($table)->where($this->dbSchema->identity, $id)->update([
-                    $model => $value
-                ]);
-            }
+            DB::table($table)->whereIn($this->dbSchema->identity, (array)$ids)->update([
+                $model => $value
+            ]);
             return true;
         } else {
             return false;

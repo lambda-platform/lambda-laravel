@@ -181,7 +181,7 @@ class RolesController extends Controller
 //        $permissionsArray = $request->get('permissions');
 //        $permissions = implode(",", $permissionsArray);
 
-        $role = Role::find($id);
+        $role = Role::findOrFail($id);
         if (isset($role->type) && $request->has('type')) {
             $role->type = $request->get('type');
         }
@@ -201,7 +201,7 @@ class RolesController extends Controller
     public function destroy($id)
     {
 //        if (Auth::user()->can('users_delete')){
-        if (Role::find($id)->delete()) {
+        if (Role::findOrFail($id)->delete()) {
             $role = Role::onlyTrashed()->where('id', $id)->get();
             return response()->json(['status' => true, 'role' => $role, 'message' => 'Үүрэг амжилттай устлаа']);
         } else {

@@ -4,6 +4,7 @@ namespace Lambda\Puzzle;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Process\Process;
 
 class DBBackup
 {
@@ -29,9 +30,23 @@ class DBBackup
         $backupFile = storage_path("backup/backup_{$db}_{$timestamp}.sql");
         Log::info("Creating MySQL dump...");
 
-        $dumpCommand = "{$exe} --single-transaction -h {$host} -u {$user} -p'{$pass}' {$db} > {$backupFile} 2>&1";
-        exec($dumpCommand, $output, $return);
-        Log::info("Dump command output", ['output' => $output, 'return' => $return]);
+        // Values are passed through the environment so they are never interpolated into the shell command,
+        // the password is not visible in `ps`, and stderr is kept out of the dump file.
+        $process = Process::fromShellCommandline(
+            '"$DUMP_EXE" --single-transaction -h "$DUMP_HOST" -u "$DUMP_USER" "$DUMP_DB" > "$DUMP_FILE"',
+            null,
+            [
+                'DUMP_EXE' => $exe ?: 'mysqldump',
+                'DUMP_HOST' => $host,
+                'DUMP_USER' => $user,
+                'DUMP_DB' => $db,
+                'DUMP_FILE' => $backupFile,
+                'MYSQL_PWD' => (string)$pass,
+            ]
+        );
+        $process->setTimeout(null);
+        $return = $process->run();
+        Log::info("Dump command output", ['output' => $process->getErrorOutput(), 'return' => $return]);
 
         if ($return !== 0) {
             Log::error("Backup failed.");
@@ -68,30 +83,39 @@ class DBBackup
         $scriptLines = [
             '#!/usr/bin/expect -f',
             'set timeout -1',
-            "spawn scp -P $remotePort \"$localFile\" \"$remoteUser@$remoteHost:$remotePath\"",
+            'spawn scp -P $env(SCP_PORT) $env(SCP_FILE) $env(SCP_TARGET)',
             'expect {',
             '    "*yes/no*" {',
             '        send "yes\r"',
             '        exp_continue',
             '    }',
             '    "*assword:*" {',
-            '        send -- {' . $remotePass . '}',
-            '        send "\r"',
+            '        send -- "$env(SCP_PASS)\r"',
             '    }',
             '}',
             'expect eof'
         ];
 
+        // The script holds no secrets; values come from the environment so they can't break out of Tcl
         file_put_contents($scriptPath, implode(PHP_EOL, $scriptLines));
         chmod($scriptPath, 0700);
 
-        exec("expect $scriptPath 2>&1", $output, $returnCode);
-
-        unlink($scriptPath); // delete script
+        try {
+            $process = new Process(['expect', $scriptPath], null, [
+                'SCP_PORT' => (string)$remotePort,
+                'SCP_FILE' => $localFile,
+                'SCP_TARGET' => "$remoteUser@$remoteHost:$remotePath",
+                'SCP_PASS' => (string)$remotePass,
+            ]);
+            $process->setTimeout(null);
+            $returnCode = $process->run();
+        } finally {
+            @unlink($scriptPath); // delete script
+        }
 
         return [
             'success' => $returnCode === 0,
-            'output' => $output,
+            'output' => $process->getOutput() . $process->getErrorOutput(),
             'code' => $returnCode
         ];
     }
@@ -99,10 +123,10 @@ class DBBackup
     function deleteOldBackups($path = 'storage/backup', $days = 3)
     {
         $files = File::files($path);
-        $now = now();
+        $threshold = now()->subDays($days)->getTimestamp();
 
         foreach ($files as $file) {
-            if ($now->diffInDays(\Carbon\Carbon::createFromTimestamp(File::lastModified($file))) > $days) {
+            if (File::lastModified($file) < $threshold) {
                 File::delete($file);
             }
         }

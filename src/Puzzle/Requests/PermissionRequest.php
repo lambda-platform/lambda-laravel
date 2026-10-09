@@ -45,8 +45,8 @@ class PermissionRequest extends FormRequest
             case 'PATCH':
                 {
                     return [
-                        'name' => 'required|min:3|max:35'.Rule::unique('permissions', 'name')->ignore($this->id),
-                        'display_name' => 'required|min:3|max:35'.Rule::unique('permissions', 'display_name')->ignore($this->id),
+                        'name' => ['required', 'min:3', 'max:35', Rule::unique('permissions', 'name')->ignore($this->id)],
+                        'display_name' => ['required', 'min:3', 'max:35', Rule::unique('permissions', 'display_name')->ignore($this->id)],
                         'description' => 'max:100',
                     ];
                 }

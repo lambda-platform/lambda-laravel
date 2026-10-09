@@ -6,46 +6,6 @@ use Illuminate\Support\Facades\DB;
 
 trait Utils
 {
-    //For specific ID
-    public function setID()
-    {
-        foreach ($this->schema as $s) {
-            // Sub forms
-            if ($s->formType == 'SubForm') {
-                $subForm = new \stdClass();
-                $subForm->data = request()->get($s->model);
-                $subForm->parent = $s->parent;
-                $subForm->model = $s->model;
-                foreach ($s->schema as $sch) {
-                    if ($s->identity == $sch->model) {
-                        if ($sch->extra == '' || $sch->extra == null) {
-                            $subForm->generateID = true;
-                            $subForm->identity = $sch->model;
-                        } else {
-                            $subForm->generateID = false;
-                        }
-                    }
-                }
-                array_push($subForms, $subForm);
-            } //Main form
-            else {
-                array_push($models, $s->model);
-                if ($this->dbSchema->identity == $s->model) {
-                    if ($s->extra == '' || $s->extra == null) {
-                        $generatedID = (string)Uuid::generate();
-                        $identityModel = $s->model;
-                    } else {
-                        continue;
-                    }
-                }
-
-                if (($s->model == 'created_at' || $s->model == 'updated_at') && $this->dbSchema->timestamp) {
-                    continue;
-                }
-            }
-        }
-    }
-
     public function callTrigger($action, $qrOrData, $id = null)
     {
         if (!property_exists($this->dbSchema, 'triggers')) {
@@ -107,7 +67,7 @@ trait Utils
         if(isset($this->dbSchema->triggers->cache_clear_url) && $this->dbSchema->triggers->cache_clear_url) {
             $config = null;
 
-            if (env('DB_CONNECTION') == 'pgsql') {
+            if (DB::connection()->getDriverName() == 'pgsql') {
                 $config = DB::table('public.api_config')->where('code', '10011')->first();
             } else {
                 $config = DB::table('api_config')->where('code', '10011')->first();
@@ -124,7 +84,8 @@ trait Utils
                             CURLOPT_RETURNTRANSFER => true,
                             CURLOPT_ENCODING => "",
                             CURLOPT_MAXREDIRS => 10,
-                            CURLOPT_TIMEOUT => 0,
+                            CURLOPT_CONNECTTIMEOUT => 5,
+                            CURLOPT_TIMEOUT => 15,
                             CURLOPT_FOLLOWLOCATION => true,
                             CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                             CURLOPT_SSL_VERIFYHOST => false,

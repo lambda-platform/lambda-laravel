@@ -48,7 +48,7 @@ class PageRequest extends FormRequest
             case 'PATCH':
                 {
                     return [
-                        'name' => 'required|max:255' . Rule::unique('agent_settings', 'name')->ignore($this->id),
+                        'name' => ['required', 'max:255', Rule::unique('agent_settings', 'name')->ignore($this->id)],
                         'value' => '',
                         'description' => ''
                     ];

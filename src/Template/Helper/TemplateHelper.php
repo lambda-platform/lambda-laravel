@@ -12,9 +12,8 @@ class TemplateHelper
 
     public function __construct()
     {
-        $config = Config::get('lambda');
-        $this->title = $config['title'];
-        $this->favicon = $config['favicon'];
-        $this->logo = $config['logo'];
+        $this->title = Config::get('lambda.title', '');
+        $this->favicon = Config::get('lambda.favicon', '');
+        $this->logo = Config::get('lambda.logo', '');
     }
 }

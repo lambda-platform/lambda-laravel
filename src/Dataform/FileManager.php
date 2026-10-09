@@ -5,7 +5,6 @@ namespace Lambda\Dataform;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
 use Intervention\Image\Facades\Image;
-use Compress;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
 
@@ -66,12 +65,15 @@ trait FileManager
     {
         $t = new self();
         $file = request()->file('file');
+        if (!$file || !$file->isValid()) {
+            return response()->json(['status' => false], 422);
+        }
         $file_type = "images";
         $rules = [
             'file' => 'mimes:JPG,PNG,GIF,JPEG,png,gif,jpeg,jpg,webp|max:20000000',
         ];
 
-        $ext = $file->getClientOriginalExtension();
+        $ext = strtolower($file->getClientOriginalExtension());
         if ($ext == 'dwg' || $ext == 'pdf' || $ext == 'swf' || $ext == 'doc' || $ext == 'docx' || $ext == 'xls' || $ext == 'xlsx' || $ext == 'ppt' || $ext == 'pptx' || $ext == 'svg') {
             $rules = [
                 'file' => 'mimes:DWG,PDF,DOC,DOCX,XLS,XLSX,PPT,PPTX,dwg,pdf,doc,docx,xls,xlsx,ppt,pptx|max:400000',
@@ -109,12 +111,4 @@ trait FileManager
         }
     }
 
-    public static function remove()
-    {
-        $img = Image::make($_FILES['image']['tmp_name']);
-        // resize image
-//        $img->fit(300, 200);
-        // save image
-        $img->save('foo/bar.jpg');
-    }
 }

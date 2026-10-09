@@ -11,8 +11,11 @@ use Lambda\Notify\Notify;
 
 class NotifyController extends Controller
 {
-    public function getNewNotifications($user)
+    public function getNewNotifications($user = null)
     {
+        // Always use the logged in user, the {user} route param is kept only for URL compatibility
+        $user = auth()->id();
+
         $unseenCount = DB::table('notification_status')
             ->where('receiver_id', $user)
             ->where('seen', 0)
@@ -31,7 +34,7 @@ class NotifyController extends Controller
 from `notification_status` as `s`
 inner join `notifications` as `n` on `n`.`id` = `s`.`notif_id`
 inner join `users` as `u` on `u`.`id` = `n`.`sender`  COLLATE utf8_general_ci
-where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
+where `s`.`receiver_id` = ? order by `created_at` desc limit 30", [$user]);
 
 
         return response()->json(['count' => $unseenCount, 'notifications' => $notifications]);
@@ -75,6 +78,7 @@ where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
     {
         $r = DB::table('notification_status')
             ->where('notif_id', $id)
+            ->where('receiver_id', auth()->id())
             ->update([
                 'seen' => true,
                 'seen_time' => Carbon::now()
@@ -87,15 +91,14 @@ where `s`.`receiver_id` = '" . $user . "' order by `created_at` desc limit 30");
 
     function setToken($userId, $token)
     {
+        // Users can only set their own push token
         $r = DB::table('users')
-            ->where('id', $userId)
+            ->where('id', auth()->id())
             ->update([
                 'token' => $token
             ]);
 
-        if ($r) {
-            return response()->json(['status' => true]);
-        }
+        return response()->json(['status' => (bool)$r]);
     }
 
     function fcm()
