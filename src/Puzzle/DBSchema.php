@@ -159,7 +159,7 @@ trait DBSchema
                 return $data;
             }
 
-            $data = DB::select("show fields from $table");
+         $data = DB::select("show fields from `$table`");
         } catch (\Exception $e) {
             report($e);
             return [];
