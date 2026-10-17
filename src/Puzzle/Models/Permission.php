@@ -4,13 +4,11 @@ namespace Lambda\Puzzle\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Lambda\Agent\Helper\DataViewer;
 
 
 class Permission extends Model
 {
     use SoftDeletes;
-    use DataViewer;
 
     protected $table = 'permissions';
     protected $fillable = ['name', 'display_name', 'description'/*, 'route'*/];

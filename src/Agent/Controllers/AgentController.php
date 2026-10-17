@@ -38,19 +38,23 @@ class AgentController extends Controller
                 $qr = $qr->where('role', request()->get('role'));
             }
 
-            return $qr->paginate(16);
+            return $this->hideSecrets($qr->paginate(16));
         }
 
         $qr = DB::table('users')->where('deleted_at', '!=', null)->orderBy(request()->sort, request()->direction);
         if (request()->role != 'all') {
             $qr = $qr->where('role', request()->get('role'));
         }
-        return $qr->paginate(16);
+        return $this->hideSecrets($qr->paginate(16));
     }
 
     function getUser($id)
     {
-        return DB::table('users')->find($id);
+        $user = DB::table('users')->find($id);
+        if ($user) {
+            unset($user->password, $user->remember_token);
+        }
+        return $user;
     }
 
     function deleteUser($id)
@@ -90,18 +94,28 @@ class AgentController extends Controller
     function searchUsers($q = null)
     {
         if ($q == '' || $q == null) {
-            return DB::table('users')->where('deleted_at', null)->paginate(18);
+            return $this->hideSecrets(DB::table('users')->where('deleted_at', null)->paginate(18));
         }
 
         $r = DB::table('users')
             ->where('deleted_at', null)
-            ->whereRaw('lower(CONCAT_WS(\' \',login,first_name,last_name,phone)) like lower(\'%' . $q . '%\')')
+            ->whereRaw("lower(CONCAT_WS(' ',login,first_name,last_name,phone)) like ?", ['%' . mb_strtolower($q) . '%'])
             ->paginate(18);
+        $this->hideSecrets($r);
 
         if ($r) {
             return ['status' => true, 'data' => $r];
         }
         return ['status' => false];
+    }
+
+    private function hideSecrets($paginator)
+    {
+        $paginator->getCollection()->transform(function ($user) {
+            unset($user->password, $user->remember_token);
+            return $user;
+        });
+        return $paginator;
     }
 
     function getRoles()

@@ -22,10 +22,12 @@ class AuthController extends Controller
         //Returning login page
         if (request()->isMethod('get')) {
             if (auth()->user() && auth()->user()->role) {
-                return redirect()->to($this->checkRole(auth()->user()->role));
-            } else {
-                return view('agent::login');
+                $path = $this->checkRole(auth()->user()->role);
+                if ($path) {
+                    return redirect()->to($path);
+                }
             }
+            return view('agent::login');
         }
 
         //Validating
@@ -40,9 +42,7 @@ class AuthController extends Controller
         }
 
         //JWT Auth
-        if (request()->ajax() || request()->wantsJson()) {
-            return $this->jwtLogin($credentials);
-        }
+        return $this->jwtLogin($credentials);
     }
 
     public function jwtLogin($credentials)
@@ -58,30 +58,38 @@ class AuthController extends Controller
                     return response()->json(['status' => false, 'error' => 'Хэрэглэгч баталгаажаагүй байна'], 401);
                 }
             }
-            JWTAuth::factory()->setTTL(env('JWT_TTL', 60));
+            $ttl = config('jwt.ttl', 60);
+            JWTAuth::factory()->setTTL($ttl);
             $token = auth('api')->attempt($credentials);
         } catch (JWTException $e) {
-            return response()->json(['status' => false, 'error' => 'Could not authenticate', 'exception' => $e->getMessage()], 500);
+            report($e);
+            return response()->json(['status' => false, 'error' => 'Could not authenticate'], 500);
         }
 
         if (!$token) {
             return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
-        } else {
-            return response()
-                ->json([
-                    'status' => true,
-                    'path' => $this->checkRole(auth()->user()->role),
-                ], 200)
-                ->header('Authotization', "bearer " . $token)
-                ->withCookie('token', auth()->getToken()->get(), env('JWT_TTL', 60), '/');
         }
+
+        $path = $this->checkRole(auth('api')->user()->role);
+        if (!$path) {
+            auth('api')->logout();
+            return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
+        }
+
+        return response()
+            ->json([
+                'status' => true,
+                'path' => $path,
+            ], 200)
+            ->header('Authorization', 'Bearer ' . $token)
+            ->withCookie('token', $token, $ttl, '/');
     }
 
     public function checkRole($role)
     {
         $config = Config::get('lambda');
-        $roleRedirects = $config['role-redirects'];
-        $defaultRedirect = $config['app_url'];
+        $roleRedirects = $config['role-redirects'] ?? [];
+        $defaultRedirect = $config['app_url'] ?? '/';
 
         foreach ($roleRedirects as $roleRedirect) {
             if ($roleRedirect['role_id'] == $role) {
@@ -94,16 +102,9 @@ class AuthController extends Controller
             $user_group = DB::table('roles')->where('id', $role)->first();
 
             if ($user_group) {
-                if ($user_group->permissions) {
-                    $permissions = json_decode($user_group->permissions);
-                    if ($permissions->default_menu) {
-                        return $defaultRedirect . $permissions->default_menu;
-                    } else {
-                        return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
-                    }
-                } else {
-                    return response()->json(['status' => false, 'error' => 'Unauthorized'], 401);
-                }
+                $permissions = $user_group->permissions ? json_decode($user_group->permissions) : null;
+                // null means the role has no landing page, callers treat it as unauthorized
+                return !empty($permissions->default_menu) ? $defaultRedirect . $permissions->default_menu : null;
             }
         }
         return $defaultRedirect;
@@ -120,7 +121,13 @@ class AuthController extends Controller
 
     public function refresh()
     {
-        return $this->respondWithToken(auth()->refresh());
+        $token = auth('api')->refresh();
+        $ttl = config('jwt.ttl', 60);
+
+        return response()
+            ->json(['status' => true, 'token' => $token])
+            ->header('Authorization', 'Bearer ' . $token)
+            ->withCookie('token', $token, $ttl, '/');
     }
 
     public function me()

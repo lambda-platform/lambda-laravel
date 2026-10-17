@@ -20,12 +20,8 @@ class PuzzleController extends Controller
         $dbSchema = Puzzle::getDBSchema();
         $gridList = DB::table('vb_schemas')->where('type', 'grid')->orderByDesc('id')->get();
         $config = Config::get('lambda');
-        $user_fields = $config['user_data_fields'];
+        $user_fields = $config['user_data_fields'] ?? [];
         $email_templates = null;
-
-        if(isset($lambda_check) && $lambda_check == true && isset($lambda_check_role) && $lambda_check_role != \auth()->user()->role){
-            return redirect()->to('/auth/login');
-        }
 
         if(isset($config['has_email_template'])) {
             $email_templates = DB::table('public.content_template')->where('type', 'И-мэйл загвар')->get();
@@ -39,34 +35,51 @@ class PuzzleController extends Controller
         return view('puzzle::builder');
     }
 
+    /**
+     * Returns an absolute path inside public/ for an .html page, or null when the name is not allowed.
+     * Only .html/.htm files may be read or written by the page builder (prevents writing .php etc).
+     */
     function sanitizeFileName($file)
     {
         //sanitize, remove double dot .. and remove get parameters if any
-//        $file = __DIR__ . '/' . preg_replace('@\?.*$@' , '', preg_replace('@\.{2,}@' , '', preg_replace('@[^\/\\a-zA-Z0-9\-\._]@', '', $file)));
-        $file = preg_replace('@\?.*$@' , '', preg_replace('@\.{2,}@' , '', preg_replace('@[^\/\\a-zA-Z0-9\-\._]@', '', $file)));
-        return public_path('/' . $file);
+        $file = preg_replace('@\?.*$@', '', preg_replace('@\.{2,}@', '', preg_replace('@[^\/a-zA-Z0-9\-\._]@', '', (string)$file)));
+        $file = ltrim($file, '/');
+
+        if ($file === '' || !preg_match('/\.html?$/i', $file)) {
+            return null;
+        }
+
+        return public_path($file);
     }
 
-    function savePage(){
+    function savePage()
+    {
         $html = "";
-        if (isset($_POST['startTemplateUrl']) && !empty($_POST['startTemplateUrl']))
-        {
-            $startTemplateUrl = $this->sanitizeFileName($_POST['startTemplateUrl']);
+        if (request()->filled('startTemplateUrl')) {
+            $startTemplateUrl = $this->sanitizeFileName(request()->input('startTemplateUrl'));
+            if (!$startTemplateUrl || !is_file($startTemplateUrl)) {
+                return response('Invalid template file', 422);
+            }
             $html = file_get_contents($startTemplateUrl);
-        } else if (isset($_POST['html']))
-        {
-            $html = substr($_POST['html'], 0, MAX_FILE_LIMIT);
+        } else if (request()->has('html')) {
+            $html = substr((string)request()->input('html'), 0, MAX_FILE_LIMIT);
         }
 
-        $file = $this->sanitizeFileName($_POST['file']);
-
-        if (file_put_contents($file, $html)) {
-            echo "<strong>Амжилттай хадгалагдлаа</strong> <br/> $file";
-        } else {
-            header($_SERVER['SERVER_PROTOCOL'] . ' 500 Internal Server Error', true, 500);
-            echo "Error saving file  $file\nPossible causes are missing write permission or incorrect file path!";
+        $file = $this->sanitizeFileName(request()->input('file'));
+        if (!$file) {
+            return response('Only .html files can be saved', 422);
         }
 
+        $dir = dirname($file);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
+        if (file_put_contents($file, $html) !== false) {
+            return response('<strong>Амжилттай хадгалагдлаа</strong> <br/> ' . e($file));
+        }
+
+        return response("Error saving file " . e($file) . "\nPossible causes are missing write permission or incorrect file path!", 500);
     }
 
     public function embed()
@@ -79,7 +92,34 @@ class PuzzleController extends Controller
 
     public function dbSchema($table = false)
     {
-        return $table == false ? VB::tables() : VB::tableMeta($table);
+        if ($table == false) {
+            return Puzzle::tables();
+        }
+
+        // tableMeta interpolates the name into SQL, so only allow existing tables
+        if (!in_array($table, $this->tableNames(), true)) {
+            abort(404);
+        }
+
+        return Puzzle::tableMeta($table);
+    }
+
+    private function tableNames()
+    {
+        $tables = Puzzle::tables();
+        $names = [];
+        foreach ((array)$tables as $t) {
+            if (is_string($t)) {
+                $names[] = $t;
+                continue;
+            }
+            foreach ((array)$t as $v) {
+                if (is_string($v)) {
+                    $names[] = $v;
+                }
+            }
+        }
+        return $names;
     }
 
     //Chart function
@@ -140,6 +180,9 @@ class PuzzleController extends Controller
     public function getOptions()
     {
         $relations = request()->relations;
+        if (!is_array($relations)) {
+            return [];
+        }
 
         $f = new Dataform();
         $data = [];
@@ -206,6 +249,10 @@ class PuzzleController extends Controller
 
     public function deleteVB($table, $type, $id)
     {
+        if (!in_array($table, ['vb_schemas', 'vb_schemas_admin'], true)) {
+            abort(404);
+        }
+
         $this->beforeAction('delete', ['type' => $type], $id);
         $r = DB::table($table)->delete($id);
         if ($r) {

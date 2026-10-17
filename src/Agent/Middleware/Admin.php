@@ -18,7 +18,7 @@ class Admin
      */
     public function handle($request, Closure $next)
     {
-        config()->set('jwt.user', " Lambda\Agent\Models\User");
+        config()->set('jwt.user', "Lambda\Agent\Models\User");
         config()->set('auth.providers.users.model', \Lambda\Agent\Models\User::class);
         return $next($request);
     }

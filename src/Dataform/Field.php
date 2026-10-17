@@ -6,7 +6,7 @@ trait Field
 {
     private $field;
 
-    public function meta($model = null, $label = null, $type, $meta = null)
+    public function meta($model, $label, $type, $meta = null)
     {
         if ($model !== null) {
             $field['model'] = $model;

@@ -9,8 +9,8 @@ use CURLFile;
 use Mail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use mysql_xdevapi\Exception;
 use Lambda\Dataform\Helper;
+use Illuminate\Support\Str;
 
 trait FormEmail
 {
@@ -37,12 +37,12 @@ trait FormEmail
         Log::debug('EMAIL - SEND EMAIL NORMAL LAMBDA FUNCTION: ' . Carbon::now());
         Log::debug('EMAIL - DATA: ' . json_encode($schema->email));
 
-        if (isset($schema->email) && count($schema->email->to) > 0 && $schema->email->subject) {
+        if (isset($schema->email) && !empty($schema->email->to) && !empty($schema->email->subject)) {
 
 
             $config = null;
             try {
-                if (env('DB_CONNECTION') == 'pgsql') {
+                if (DB::connection()->getDriverName() == 'pgsql') {
                     $config = DB::table('public.api_config')->where('code', '10013')->first();
                 } else {
                     $config = DB::table('api_config')->where('code', '10013')->first();
@@ -55,8 +55,8 @@ trait FormEmail
 
             $email = $schema->email;
             $to = $email->to;
-            $cc = $email->cc;
-            $bcc = $email->bcc;
+            $cc = $email->cc ?? [];
+            $bcc = $email->bcc ?? [];
 
             $ccAddress = "";
             foreach ($cc as $t) {
@@ -78,8 +78,10 @@ trait FormEmail
 
             $body = $email->body;
             foreach ($data as $key => $value) {
+                // Multi-select / json fields come as arrays, nulls as null
+                $value = is_scalar($value) || $value === null ? (string)$value : json_encode($value, JSON_UNESCAPED_UNICODE);
 
-                if (str_contains($value, 'uploaded')) {
+                if ($config && str_contains($value, 'uploaded')) {
                     $value = str_replace(' ', '%20', $value);
                     $value = str_replace('\\', '/', $value);
                     $url=$config->host.$value;
@@ -92,9 +94,12 @@ trait FormEmail
                 }
 
             }
-            $attach_file_name = 'attach.pdf';
-            if (isset($schema->email->has_attach) && $schema->email->has_attach) {
-                $pdfData = mb_convert_encoding(\View::make('puzzle::email', ['body' => $body, 'title' => $email->subject]), 'HTML-ENTITIES', 'UTF-8');
+            // Unique file outside public/ so concurrent submissions don't overwrite or expose each other's PDF
+            $attach_file_name = storage_path('app/attach_' . Str::uuid() . '.pdf');
+            $hasAttach = isset($schema->email->has_attach) && $schema->email->has_attach;
+            if ($hasAttach) {
+                $html = (string)\View::make('puzzle::email', ['body' => $body, 'title' => $email->subject]);
+                $pdfData = mb_encode_numericentity($html, [0x80, 0x10FFFF, 0, 0x1FFFFF], 'UTF-8');
                 Pdf::loadHTML($pdfData)->setWarnings(false)->save($attach_file_name);
             }
             //$subject = urlencode($email->subject);
@@ -117,7 +122,13 @@ trait FormEmail
                                     $message->bcc($bccAddress);
                                 }
                                 $message->subject($subject);
-                                $message->setBody($body, 'text/html');
+                                if (method_exists($message, 'getSwiftMessage')) {
+                                    // Laravel <= 8 (SwiftMailer)
+                                    $message->setBody($body, 'text/html');
+                                } else {
+                                    // Laravel 9+ (Symfony Mailer)
+                                    $message->html($body);
+                                }
                                 if (isset($schema->email->has_attach) && $schema->email->has_attach) {
                                     $message->attach($attach_file_name);
                                 }
@@ -126,9 +137,13 @@ trait FormEmail
                     } else {
                         Log::error('EMAIL - validation error:' . $t);
                     }
-                } catch (Exception $e) {
+                } catch (\Throwable $e) {
                     Log::error('EMAIL - Email error: ' . $e);
                 }
+            }
+
+            if ($hasAttach && is_file($attach_file_name)) {
+                @unlink($attach_file_name);
             }
         }
     }

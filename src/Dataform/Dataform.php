@@ -19,7 +19,6 @@ class Dataform extends Facade
     use FileManager;
     use Validate;
     use Utils;
-    use CustomUtils;
 
 //    use FormEmail;
 
@@ -34,6 +33,9 @@ class Dataform extends Facade
         $this->dbSchema = DB::table('vb_schemas')->where('id', (int)$schemaID)->first();
         if (!$this->dbSchema) {
             $this->dbSchema = DB::table('vb_schemas_admin')->where('type', 'form')->where('id', $schemaID)->first();
+        }
+        if (!$this->dbSchema) {
+            abort(404, 'Form schema not found');
         }
         $this->dbSchema = json_decode($this->dbSchema->schema);
 
@@ -112,8 +114,6 @@ class Dataform extends Facade
         if (count($subforms) > 0) {
             foreach ($subforms as $sf) {
                 //$data = $f->validateFormRequest();
-                //Custom trigger
-                //$this->customCallTrigger('beforeInsertDeleteOld', $sf, null, $parentID, $status);
 
                 DB::table($sf->model)->where($sf->parent, $parentID)->delete();
 
@@ -130,7 +130,7 @@ class Dataform extends Facade
                         //form subform
                         $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
                         foreach ($subSubForms as $sForm) {
-                            $sForm->data = $sd[$sForm->model];
+                            $sForm->data = $sd[$sForm->model] ?? [];
                         }
                         //unset all subtables
                         foreach (array_keys($sd) as $key) {
@@ -145,14 +145,13 @@ class Dataform extends Facade
                         if (count($subSubForms) > 0) {
                             foreach ($subSubForms as $sForm) {
                                 if (count($sForm->data) > 0) {
-                                    if (isset($sForm->generateID) && $sForm->generateID) {
-                                        $sForm->{$sForm->identity} = (string)Uuid::generate();
-                                    } else {
-                                        if (isset($sForm->id))
-                                            unset($sForm->id);
-                                    }
                                     foreach ($sForm->data as $sFormData) {
                                         $sFormData[$sForm->parent] = $insert_id;
+                                        if (!empty($sForm->generateID)) {
+                                            $sFormData[$sForm->identity] = (string)Uuid::generate();
+                                        } else {
+                                            unset($sFormData['id']);
+                                        }
                                         $SFormSubQr = DB::table($sForm->model);
                                         $SFormSubQr->insert($sFormData);
                                     }
@@ -198,17 +197,26 @@ class Dataform extends Facade
             unset($data[$this->dbSchema->identity]);
         }
 
-        $r = $qr->insert($data);
+        DB::beginTransaction();
+        try {
+            $r = $qr->insert($data);
+            if ($r) {
+                isset($data[$this->dbSchema->identity]) ? $id = $data[$this->dbSchema->identity] : $id = $data[$this->dbSchema->identity] = DB::getPdo()->lastInsertId();
+                $this->storeSubs($subforms, $id, 'store');
+                $this->storeSteps($id);
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
+
         if ($r) {
-            isset($data[$this->dbSchema->identity]) ? $id = $data[$this->dbSchema->identity] : $id = $data[$this->dbSchema->identity] = DB::getPdo()->lastInsertId();
-            $this->storeSubs($subforms, $id, 'store');
-            $this->storeSteps($id);
 
             $data[$this->dbSchema->identity] = $id;
             $data = $this->callTrigger('afterInsert', $data, $id);
             $cache = $this->cacheClear();
 
-            LOG::debug('ON DISPATCH');
 //            if (isset($schema->triggers) && isset($schema->triggers->namespace) && isset($schema->triggers->email)
 //                && $schema->triggers->email) {
 //                $emailTriggerData = new \stdClass();
@@ -225,7 +233,6 @@ class Dataform extends Facade
 
             $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
             $response_data[$this->dbSchema->identity] = $id;
-            LOG::debug('RESPONSE: ' . Carbon::now());
 
             return response()->json($response_data);
         }
@@ -244,15 +251,20 @@ class Dataform extends Facade
                     ->where($sf->parent, $parentID)
                     ->pluck($sfIdentity . ' as val', $sfIdentity);
 
-                foreach ($sf->data as $sd) {
+                foreach ($sf->data ?? [] as $sd) {
                     if (isset($sd[$sfIdentity])) {
+                        // Only rows that belong to this parent may be updated
                         $old = DB::table($sf->model)
+                            ->where($sf->parent, $parentID)
                             ->where($sfIdentity, $sd[$sfIdentity])
                             ->first();
+                        if (!$old) {
+                            continue;
+                        }
                         //form subform
                         $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
                         foreach ($subSubForms as $sForm) {
-                            $sForm->data = $sd[$sForm->model];
+                            $sForm->data = $sd[$sForm->model] ?? [];
                         }
 
 
@@ -276,14 +288,6 @@ class Dataform extends Facade
                             foreach ($subSubForms as $sForm) {
                                 //data baival
                                 if (count($sForm->data) > 0) {
-                                    //dd($sForm->data);
-                                    if (isset($sForm->generateID) && $sForm->generateID) {
-                                        $sForm->{$sForm->identity} = (string)Uuid::generate();
-                                    } else {
-                                        if (isset($sForm->id))
-                                            unset($sForm->id);
-                                    }
-
                                     //getting old data
                                     $oldSubFormDataIds = DB::table($sForm->model)
                                         ->where($sForm->parent, $old->id)
@@ -292,6 +296,7 @@ class Dataform extends Facade
                                     foreach ($sForm->data as $sFormData) {
                                         if (isset($sFormData['id'])) {
                                             $oldSubFormData = DB::table($sForm->model)
+                                                ->where($sForm->parent, $old->id)
                                                 ->where('id', $sFormData['id'])->first();
                                             //getting old saved data
                                             if ($oldSubFormData) {
@@ -302,10 +307,10 @@ class Dataform extends Facade
                                             }
                                         } else {
                                             $sFormData[$sForm->parent] = $old->id;
-                                            if ($sForm->generateID) {
+                                            if (!empty($sForm->generateID)) {
                                                 $sFormData[$sForm->identity] = (string)Uuid::generate();
                                             } else {
-                                                if (env('DB_CONNECTION') == 'sqlsrv') {
+                                                if (DB::connection()->getDriverName() == 'sqlsrv') {
                                                     unset($sFormData['id']);
                                                 }
                                             }
@@ -314,7 +319,7 @@ class Dataform extends Facade
                                     }
 
                                     foreach ($oldSubFormDataIds as $key => $value) {
-                                        DB::table($sForm->model)->where('id', $key)->delete();
+                                        DB::table($sForm->model)->where($sForm->parent, $old->id)->where('id', $key)->delete();
                                     }
                                 }
                             }
@@ -324,7 +329,7 @@ class Dataform extends Facade
                         if ($sf->generateID) {
                             $sd[$sf->identity] = (string)Uuid::generate();
                         } else {
-                            if (env('DB_CONNECTION') == 'sqlsrv') {
+                            if (DB::connection()->getDriverName() == 'sqlsrv') {
                                 unset($sd[$sfIdentity]);
                             }
                         }
@@ -333,7 +338,7 @@ class Dataform extends Facade
                         $subSubForms = isset($sf->subForms) ? $sf->subForms : [];
 
                         foreach ($subSubForms as $sForm) {
-                            $sForm->data = $sd[$sForm->model];
+                            $sForm->data = $sd[$sForm->model] ?? [];
                         }
                         //unset all subtables
                         foreach (array_keys($sd) as $key) {
@@ -349,20 +354,13 @@ class Dataform extends Facade
                                 //dd($subSubForms);
                                 foreach ($subSubForms as $sForm) {
                                     if (count($sForm->data) > 0) {
-                                        if (isset($sForm->generateID) && $sForm->generateID) {
-                                            $sForm->{$sForm->identity} = (string)Uuid::generate();
-                                        } else {
-                                            if (isset($sForm->id))
-                                                unset($sForm->id);
-                                        }
-
                                         foreach ($sForm->data as $sFormData) {
 
                                             $sFormData[$sForm->parent] = $insertId;
-                                            if ($sForm->generateID) {
+                                            if (!empty($sForm->generateID)) {
                                                 $sFormData[$sForm->identity] = (string)Uuid::generate();
                                             } else {
-                                                if (env('DB_CONNECTION') == 'sqlsrv') {
+                                                if (DB::connection()->getDriverName() == 'sqlsrv') {
                                                     unset($sFormData['id']);
                                                 }
                                             }
@@ -376,7 +374,7 @@ class Dataform extends Facade
                     }
                 }
                 foreach ($oldSubData as $key => $value) {
-                    DB::table($sf->model)->where('id', $key)->delete();
+                    DB::table($sf->model)->where($sf->parent, $parentID)->where($sfIdentity, $key)->delete();
                 }
             }
         }
@@ -390,12 +388,15 @@ class Dataform extends Facade
             return $data->response;
         }
 
-        $r = DB::table($this->dbSchema->model)
-            ->where($this->dbSchema->identity, $id)
-            ->update($data);
+        DB::transaction(function () use ($id, $data, $subforms) {
+            DB::table($this->dbSchema->model)
+                ->where($this->dbSchema->identity, $id)
+                ->update($data);
+
+            $this->updateSubs($subforms, $id, 'update');
+        });
 
         $data[$this->dbSchema->identity] = $id;
-        $this->updateSubs($subforms, $id, 'update');
         $data = $this->callTrigger('afterUpdate', $data, $id);
         $cache = $this->cacheClear();
         $response_data = ['status' => true, 'data' => $data, 'cache clear' => $cache];
@@ -444,16 +445,13 @@ class Dataform extends Facade
             $filter = isset($relObj->filter) ? $relObj->filter : false;
         }
 
-        $filterWithUser = null;
-        if (isset($relObj->filterWithUser)) {
+        $filterWithUser = [];
+        if (isset($relObj->filterWithUser) && Auth::user()) {
             $user = Auth::user()->toArray();
             foreach ($relObj->filterWithUser as $userFilter) {
-                if ($user[$userFilter["userField"]]) {
-                    if ($filterWithUser) {
-                        $filterWithUser = " and " . $userFilter['tableField'] . " = '" . $user[$userFilter["userField"]] . "'";
-                    } else {
-                        $filterWithUser = "" . $userFilter['tableField'] . " = '" . $user[$userFilter["userField"]] . "'";
-                    }
+                $userFilter = (array)$userFilter;
+                if (!empty($user[$userFilter["userField"]])) {
+                    $filterWithUser[$userFilter['tableField']] = $user[$userFilter["userField"]];
                 }
             }
         }
@@ -492,41 +490,23 @@ class Dataform extends Facade
 //        $sortField = $relObj == false ? (isset(request()->sortField) ? request()->sortField : false) : $relObj->sortField;
 //        $sortOrder = $relObj == false ? (isset(request()->sortOrder) ? request()->sortOrder : false) : $relObj->sortOrder;
 
+        $driver = DB::connection()->getDriverName();
         $qr = DB::table($table)->select($value . ' as value');
         if (is_array($labels)) {
             $labelsWoInject = [];
             foreach ($labels as $l) {
-
-                if (env('DB_CONNECTION') == 'pgsql') {
-                    // $pos=strpos($table, 'lambda');
-//                    if($pos!==false)
-//                    {
-//                        $psql_table = explode(".", $table);
-//
-//                        if (!Schema::hasColumn($psql_table[count($psql_table)-1], $l)) {
-//                            unset($l);
-//                        } else {
-//                            $labelsWoInject[] = $l;
-//                        }
-                    //}else {
-                    //   if (!Schema::hasColumn($table, $l)) {
-                    //      unset($l);
-                    //  } else {
-                    $labelsWoInject[] = $l;
-                    // }
-                    //}
-                } else {
-                    if (!Schema::hasColumn($table, $l)) {
-                        unset($l);
-                    } else {
+                if ($driver == 'pgsql') {
+                    // Schema::hasColumn doesn't understand "schema.table" names, so only allow plain identifiers
+                    if (is_string($l) && preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $l)) {
                         $labelsWoInject[] = $l;
                     }
+                } elseif (Schema::hasColumn($table, $l)) {
+                    $labelsWoInject[] = $l;
                 }
             }
-            // dd($labelsWoInject);
             $label_column = join(",', ',", $labelsWoInject);
 
-            if (env('DB_CONNECTION') == 'sqlsrv') {
+            if ($driver == 'sqlsrv') {
                 if (count($labelsWoInject) >= 2) {
                     // $pdo = DB::connection()->getPdo();
                     // $db_server_v = $pdo->getAttribute(constant('PDO::ATTR_SERVER_VERSION'));
@@ -538,16 +518,13 @@ class Dataform extends Facade
                 } else {
                     $label_column = '(' . $label_column . ')';
                 }
-            } elseif (env('DB_CONNECTION') == 'oracle') {
+            } elseif ($driver == 'oracle') {
                 $label_column = '(' . $label_column . ')';
             } else {
                 $label_column = 'concat(' . $label_column . ')';
             }
         } else {
-            if (!Schema::hasColumn($table, $labels)) {
-                unset($labels);
-            }
-            $label_column = $labels;
+            $label_column = ($labels && Schema::hasColumn($table, $labels)) ? $labels : '';
         }
 
         if ($label_column != "" && $label_column != "concat()") {
@@ -564,16 +541,13 @@ class Dataform extends Facade
 
         if ($filter) {
             $qr->whereRaw($filter);
-//            $this->restrictInjectionGroup($qr, $filter)
 //            $this->restrictInjection($qr, $filter);
         }
 
-        if ($filterWithUser) {
-            $qr->whereRaw($filterWithUser);
-//            $this->restrictInjection($qr, $filterWithUser);
+        foreach ($filterWithUser as $field => $userValue) {
+            $qr->where($field, $userValue);
         }
 
-//        dd($qr->dd());
         $options = $qr->get();
 
         if ($relObj == false) {
@@ -581,17 +555,6 @@ class Dataform extends Facade
         }
 
         return $options;
-    }
-
-    function restrictInjectionGroup($qr, $filter)
-    {
-        if (str_contains($filter, 'AND')) {
-            dd($filter);
-        }
-
-        if (str_contains($filter, 'OR')) {
-            dd($filter);
-        }
     }
 
     function restrictInjection($qr, $filter)
@@ -668,7 +631,10 @@ class Dataform extends Facade
     {
         if (isset($s->formId)) {
             $localSubForms = [];
-            $subFormDbSchema = \Illuminate\Support\Facades\DB::table('vb_schemas')->where('id', (int)$s->formId)->first();
+            $subFormDbSchema = DB::table('vb_schemas')->where('id', (int)$s->formId)->first();
+            if (!$subFormDbSchema) {
+                return [];
+            }
             $subFormDbSchema = json_decode($subFormDbSchema->schema);
             $localSchema = $subFormDbSchema->schema;
             foreach ($localSchema as $local_s) {

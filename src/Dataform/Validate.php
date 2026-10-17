@@ -5,7 +5,6 @@ namespace Lambda\Dataform;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Validator;
-use JWTAuth;
 use Illuminate\Support\Facades\Hash;
 
 trait Validate
@@ -16,6 +15,8 @@ trait Validate
         $computedModels = [];
         $validations = [];
         $subForms = [];
+        // Raw password inputs: validated as plain text, hashed only after validation passes
+        $passwords = [];
 
         //For sub forms
         $generatedID = false;
@@ -46,8 +47,7 @@ trait Validate
                 if (isset($s->formId)) {
                     $localSubForms = [];
                     $subFormDbSchema = DB::table('vb_schemas')->where('id', (int)$s->formId)->first();
-                    $subFormDbSchema = json_decode($subFormDbSchema->schema);
-                    $localSchema = $subFormDbSchema->schema;
+                    $localSchema = $subFormDbSchema ? json_decode($subFormDbSchema->schema)->schema : [];
                     foreach ($localSchema as $local_s) {
                         if (isset($local_s->formType) && $local_s->formType == 'SubForm') {
                             // dd($local_s);
@@ -94,36 +94,19 @@ trait Validate
                     }
                 }
                 array_push($subForms, $subForm);
-            } elseif (isset($s->formType) && $s->formType == 'PasswordGenerate') {
-                if ($action == 'update') {
-                    if (strlen(request()->get($s->model)) > 0) {
-                        $computedModels[$s->model] = bcrypt(request()->get($s->model));
-                        if (property_exists($s, 'rules')) {
-                            $validations = array_merge($validations, $this->makeValidationStr($s->model, $s->rules));
-                        }
-                    }
-                } else {
-                    $computedModels[$s->model] = bcrypt(request()->get($s->model));
+            } elseif (isset($s->formType) && ($s->formType == 'PasswordGenerate' || $s->formType == 'Password')) {
+                $password = (string)request()->get($s->model);
+                // On update an empty password means "keep the current one"
+                if ($action != 'update' || strlen($password) > 0) {
+                    $passwords[$s->model] = $password;
                     if (property_exists($s, 'rules')) {
                         $validations = array_merge($validations, $this->makeValidationStr($s->model, $s->rules));
                     }
                 }
-            } elseif (isset($s->formType) && $s->formType == 'Password') {
-                if ($action == 'update') {
-                    if (strlen(request()->get($s->model)) > 0) {
-                        $computedModels[$s->model] = bcrypt(request()->get($s->model));
-                    }
-                } else {
-                    $computedModels[$s->model] = bcrypt(request()->get($s->model));
-                }
             } elseif (isset($s->formType) && $s->formType == 'Hidden') {
                 if (isset($s->hasUserId) && $s->hasUserId) {
-                    //dd(request()->get($s->model));
-                    if (auth()->id() != null && request()->get($s->model) == null) {
-                        $computedModels[$s->model] = auth()->id();
-                    } else {
-                        $computedModels[$s->model] = request()->get($s->model);
-                    }
+                    // The logged in user always wins, so the owner can't be spoofed from the request
+                    $computedModels[$s->model] = auth()->id() ?? request()->get($s->model);
                 }
             }
             elseif (isset($s->formType) && ($s->formType == 'Date' || $s->formType == 'DateTime')) {
@@ -171,7 +154,7 @@ trait Validate
                         continue;
                 }
 
-                if (property_exists($s, 'rules') && $s->hidden != true) {
+                if (property_exists($s, 'rules') && empty($s->hidden)) {
                     $validations = array_merge($validations, $this->makeValidationStr($s->model, $s->rules));
                 }
             }
@@ -183,10 +166,14 @@ trait Validate
             $requestData[$identityModel] = $generatedID;
         }
 
-        $validator = Validator::make($requestData, $validations);
+        $validator = Validator::make(array_merge($requestData, $passwords), $validations);
 
         if ($validator->fails()) {
             return ['status' => false, 'error' => $validator->errors()];
+        }
+
+        foreach ($passwords as $model => $password) {
+            $requestData[$model] = bcrypt($password);
         }
 
         return ['status' => true, 'data' => $requestData, 'subforms' => $subForms];
@@ -258,7 +245,7 @@ trait Validate
             ->first();
 
         if ($r) {
-            $this->checkGenerated($model);
+            return $this->checkGenerated($model);
         }
         return $generated;
     }
@@ -268,7 +255,7 @@ trait Validate
         $input_length = strlen($input);
         $random_string = '';
         for ($i = 0; $i < $strength; $i++) {
-            $random_character = $input[mt_rand(0, $input_length - 1)];
+            $random_character = $input[random_int(0, $input_length - 1)];
             $random_string .= $random_character;
         }
 
@@ -277,10 +264,10 @@ trait Validate
 
     public static function checkCurrentPassword()
     {
-        $password = request('password');
-        $user = JWTAuth::parseToken()->toUser();
+        $password = (string)request('password');
+        $user = auth()->user();
 
-        if (!Hash::check($password, $user->password)) {
+        if (!$user || !Hash::check($password, $user->password)) {
             return [
                 'status' => false,
                 'msg' => "Нууц үг буруу байна !!!"

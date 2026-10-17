@@ -49,7 +49,7 @@ Route::namespace('Lambda\Puzzle\Controllers')
 
         //Embed
         $router->get('embed', 'PuzzleController@embed');
-        $router->get('/krud/:id', 'PuzzleController@getKrud');
+        $router->get('/krud/{id}', 'PuzzleController@getKrud');
     });
 
 // /lambda/puzzle/schema, get_options-ийн хуулбар — lambda-builder модулиуд энэ замаар дууддаг.

@@ -86,7 +86,9 @@ class TranslationController extends Controller
 
     function updateTranslation()
     {
-        $data = request()->all();
+        // Only the key and locale columns may be changed (not id / component_id)
+        $columns = array_merge(['key'], DB::table('tr_locales')->pluck('code')->all());
+        $data = request()->only($columns);
         DB::table('tr_translation')->where('id', request('id'))->update($data);
         return response()->json(['status' => true]);
     }
