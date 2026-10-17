@@ -6,7 +6,6 @@
 
     <link rel="stylesheet" href="/assets/lambda/fonts/iconsax/style.css">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/moqup.css') }}">
-    <link rel="stylesheet" href="{{ mix('assets/lambda/css/report.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/dataform.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/datagrid.css') }}">
     <link rel="stylesheet" href="{{ mix('assets/lambda/css/datasource.css') }}">
