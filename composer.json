@@ -30,9 +30,12 @@
     "intervention/image": "^2.5.1",
     "maatwebsite/excel": "^3.1",
     "wisembly/elephant.io": "^3.3",
-    "barryvdh/laravel-dompdf": "2.0.0",
+    "barryvdh/laravel-dompdf": "^3.0",
     "rap2hpoutre/fast-excel": "^3.2",
-    "jenssegers/mongodb": "^v3.8.5"
+    "jenssegers/mongodb": "^v3.8.5",
+    "brnysn/laravel-h5p": "^1.1",
+    "h5p/h5p-core": "~1.27.0",
+    "h5p/h5p-editor": "~1.25.0"
   },
   "replace": {
     "lcobucci/jwt": "*"

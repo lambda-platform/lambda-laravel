@@ -52,7 +52,10 @@ Route::namespace('Lambda\Puzzle\Controllers')
         $router->get('/krud/{id}', 'PuzzleController@getKrud');
     });
 
+// /lambda/puzzle/schema, get_options-ийн хуулбар — lambda-builder модулиуд энэ замаар дууддаг.
+// Схемийн тодорхойлолт, хүснэгтийн өгөгдөл буцаадаг тул нэвтрэлт заавал.
 Route::namespace('Lambda\Puzzle\Controllers')
+    ->middleware(['api', 'jwt'])
     ->group(function ($router) {
         $router->get('/api/lm/puzzle/schema/{type}/{id?}/{condition?}', 'PuzzleController@getVB');
         $router->post('/api/lm/puzzle/get_options', 'PuzzleController@getOptions');

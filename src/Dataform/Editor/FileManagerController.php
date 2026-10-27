@@ -110,6 +110,58 @@ class FileManagerController extends Controller
         ]);
     }
 
+    // Overwrite an existing image with an edited version (crop/rotate/... done
+    // client-side) and regenerate its thumbnail. Unlike upload() this keeps
+    // the same name/path so references to the file stay valid.
+    public function save(Request $request)
+    {
+        $file = $request->file('file');
+        if (!$file || !$file->isValid()) {
+            return response()->json(['status' => false, 'message' => 'No file uploaded'], 422);
+        }
+
+        $path = $this->normalize($request->input('path'));
+        $target = $this->absolute($path);
+        if ($path === '' || !is_file($target)) {
+            return response()->json(['status' => false, 'message' => 'Not found'], 404);
+        }
+
+        $ext = strtolower(pathinfo($target, PATHINFO_EXTENSION));
+        if (!in_array($ext, $this->resizableExtensions)) {
+            return response()->json(['status' => false, 'message' => 'This file type cannot be edited'], 422);
+        }
+
+        $config = Config::get('lambda', []);
+        $maxWidth = isset($config['img_width']) ? $config['img_width'] : 1600;
+        $quality = isset($config['img_quality']) ? $config['img_quality'] : 90;
+        $thumbWidth = isset($config['img_thumb_width']) ? $config['img_thumb_width'] : 320;
+
+        $image = Image::make($file->getRealPath());
+        if ($image->width() > $maxWidth) {
+            $image->resize($maxWidth, null, function ($constraint) {
+                $constraint->aspectRatio();
+            });
+        }
+        $image->save($target, $quality);
+
+        $thumbDir = dirname($target) . DIRECTORY_SEPARATOR . self::THUMB_DIR;
+        if (!is_dir($thumbDir)) {
+            mkdir($thumbDir, 0755, true);
+        }
+        $image->resize($thumbWidth, null, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        })->save($thumbDir . DIRECTORY_SEPARATOR . basename($target));
+
+        $parent = dirname($path);
+        $parentRel = $parent === '.' ? '' : $parent;
+
+        return response()->json([
+            'status' => true,
+            'file' => $this->fileEntry($parentRel, basename($target)),
+        ]);
+    }
+
     public function folder(Request $request)
     {
         $path = $this->normalize($request->input('path'));

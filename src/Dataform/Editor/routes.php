@@ -6,6 +6,7 @@ Route::namespace('Lambda\Dataform\Editor')
     ->group(function ($router) {
         $router->get('files', 'FileManagerController@files');
         $router->post('upload', 'FileManagerController@upload');
+        $router->post('save', 'FileManagerController@save');
         $router->post('folder', 'FileManagerController@folder');
         $router->post('rename', 'FileManagerController@rename');
         $router->post('delete', 'FileManagerController@delete');

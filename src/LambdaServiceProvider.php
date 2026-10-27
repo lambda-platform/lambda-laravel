@@ -28,6 +28,16 @@ class LambdaServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/Translation/routes.php');
         $this->loadRoutesFrom(__DIR__ . '/Dataform/Editor/routes.php');
 
+        // H5P модуль нь brnysn/laravel-h5p багцтай хост дээр л идэвхжинэ
+        if (\Lambda\H5P\H5P::available()) {
+            \Lambda\H5P\H5P::bind($this->app);
+            \Lambda\H5P\H5P::ensureEditorLanguage();
+            \Lambda\H5P\H5P::ensurePublicLibraryLinks();
+            $this->loadRoutesFrom(__DIR__ . '/H5P/routes.php');
+            // 'h5p' namespace-ийг багцынхаас манай lang хавтас руу шилжүүлнэ (en + mn)
+            $this->loadTranslationsFrom(__DIR__ . '/H5P/lang', 'h5p');
+        }
+
         $this->publishes([
             __DIR__ . '/config/lambda-config.php' => config_path('lambda.php'),
         ]);
