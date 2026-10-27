@@ -4,6 +4,7 @@ namespace Lambda\Dataform;
 
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Intervention\Image\Facades\Image;
 use Illuminate\Support\Facades\File;
 use Illuminate\Http\Request;
@@ -21,23 +22,8 @@ trait FileManager
             mkdir($destinationPath, 0755, true);
         }
 
-        $fileName = str_replace('#', "-", $file->getClientOriginalName());
-        $fileName = str_replace('/', "-", $fileName);
-        $fileName = str_replace(' ', "%20", $fileName);
-
+        $fileName = self::uploadFileName($file->getClientOriginalName(), $file->getClientOriginalExtension());
         $uploadFile = $destinationPath . $fileName;
-
-//         $i = 0;
-//         while (File::exists($uploadFile)) {
-//             $fileName = ++$i . '-' . $fileName;
-//             $uploadFile = $destinationPath . $fileName;
-//         }
-       if (File::exists($uploadFile)) {
-            $currentDate = Carbon::now()->format('YmdHs');
-            $fileName = $fileName . '-' . $currentDate;
-            $fileName = $currentDate . '-' . $fileName;
-            $uploadFile = $destinationPath . $fileName;
-          } 
 
         if ($file_type == 'images') {
             $thumbPath = $destinationPath . DIRECTORY_SEPARATOR . 'thumb' . DIRECTORY_SEPARATOR;
@@ -69,6 +55,20 @@ trait FileManager
             'basePath' => $destinationPath,
             'fileName' => $fileName,
         ];
+    }
+
+    // Short, URL-safe, unique name for an uploaded file: "<slug of the original name>-<8 hex>.<ext>", e.g.
+    // "mgl-3f9a1c2e.webp". Leading "1-2-3-" counters (from older uploads re-uploaded) are dropped, the slug is
+    // cut to 40 characters, and the random part keeps two uploads of the same file apart without a disk check.
+    public static function uploadFileName($originalName, $extension): string
+    {
+        $ext = strtolower(preg_replace('/[^A-Za-z0-9]/', '', (string) $extension));
+        $base = pathinfo((string) $originalName, PATHINFO_FILENAME);
+        $base = preg_replace('/^(\d+-)+/', '', $base);
+        $base = Str::limit(Str::slug($base), 40, '');
+        $base = trim($base, '-') ?: 'file';
+
+        return $base . '-' . bin2hex(random_bytes(4)) . ($ext !== '' ? '.' . $ext : '');
     }
 
     public static function upload()
