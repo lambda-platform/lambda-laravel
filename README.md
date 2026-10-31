@@ -60,6 +60,8 @@ Main keys:
 | `password_reset_time_out` | Reset code lifetime in minutes (default `30`) |
 | `title`, `favicon`, `logo`, `copyright`, `domain` | Branding for login page, e-mails and layout |
 | `img_width`, `img_thumb_width`, `img_quality` | Image resize settings for uploads |
+| `upload.disk` | Where `krud/upload` and `puzzle/upload` store files. Empty/`null` (default) = `public/uploaded/...`, returns a relative path. A disk name from `config/filesystems.php` (e.g. `s3`) = stored on that disk, returns the disk's full URL |
+| `upload.dir` | Root folder inside the disk (default `uploaded`) |
 | `backup.*` | DB backup: `enable`, `exe_path` (mysqldump), `remote`, `remote_host`, `remote_port`, `remote_username`, `remote_password`, `remote_path` |
 
 Push notifications read the FCM server key from `config('services.fcm.key')`.

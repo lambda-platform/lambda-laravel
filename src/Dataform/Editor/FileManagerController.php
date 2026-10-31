@@ -4,13 +4,40 @@ namespace Lambda\Dataform\Editor;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Intervention\Image\Facades\Image;
+use Lambda\Dataform\UploadGuard;
 
 class FileManagerController extends Controller
 {
     const THUMB_DIR = '.thumbs';
+
+    // Served Content-Type by extension. Never sniffed from the content, so a
+    // .txt or .csv that holds HTML can't be served as a web page.
+    const CONTENT_TYPES = [
+        'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif',
+        'webp' => 'image/webp', 'bmp' => 'image/bmp', 'svg' => 'image/svg+xml',
+        'pdf' => 'application/pdf', 'txt' => 'text/plain; charset=utf-8', 'csv' => 'text/csv; charset=utf-8',
+        'doc' => 'application/msword',
+        'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls' => 'application/vnd.ms-excel',
+        'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt' => 'application/vnd.ms-powerpoint',
+        'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'mp4' => 'video/mp4', 'm4v' => 'video/x-m4v', 'avi' => 'video/x-msvideo', 'webm' => 'video/webm',
+        'mp3' => 'audio/mpeg', 'wav' => 'audio/wav', 'ogg' => 'audio/ogg', 'oga' => 'audio/ogg',
+        'm4a' => 'audio/mp4', 'aac' => 'audio/aac', 'flac' => 'audio/flac', 'opus' => 'audio/ogg', 'weba' => 'audio/webm',
+        'zip' => 'application/zip', 'rar' => 'application/vnd.rar', 'dwg' => 'image/vnd.dwg',
+    ];
+
+    // Size-limit group (lambda.upload.max_size.<group>) for each allowed extension.
+    const SIZE_GROUPS = [
+        'images' => ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'],
+        'media' => ['svg'],
+        'videos' => ['mp4', 'm4v', 'avi', 'webm'],
+        'audios' => ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus', 'weba'],
+        'archives' => ['zip', 'rar'],
+    ];
 
     protected $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
 
@@ -19,7 +46,8 @@ class FileManagerController extends Controller
     protected $allowedExtensions = [
         'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp',
         'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv',
-        'mp4', 'm4v', 'avi', 'webm', 'mp3', 'wav',
+        'mp4', 'm4v', 'avi', 'webm',
+        'mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac', 'opus', 'weba',
         'zip', 'rar', 'dwg',
     ];
 
@@ -66,6 +94,15 @@ class FileManagerController extends Controller
         if (!in_array($ext, $this->allowedExtensions)) {
             return response()->json(['status' => false, 'message' => 'File type not allowed'], 422);
         }
+        if (UploadGuard::tooLarge($file, $this->sizeGroup($ext))) {
+            return response()->json(['status' => false, 'message' => 'File is too large'], 422);
+        }
+        if ($ext === 'svg' && !UploadGuard::isSafeSvg($file->getRealPath())) {
+            return response()->json(['status' => false, 'message' => 'SVG contains scripts'], 422);
+        }
+        if (in_array($ext, UploadGuard::RASTER, true) && !UploadGuard::imageWithinLimits($file->getRealPath())) {
+            return response()->json(['status' => false, 'message' => 'Image dimensions are too large'], 422);
+        }
 
         $path = $this->normalize($request->input('path'));
         $dir = $this->absolute($path);
@@ -77,32 +114,15 @@ class FileManagerController extends Controller
         if ($name === '') {
             return response()->json(['status' => false, 'message' => 'Invalid file name'], 422);
         }
+        $target = $dir . DIRECTORY_SEPARATOR . $name;
 
-        $config = Config::get('lambda', []);
-        $maxWidth = isset($config['img_width']) ? $config['img_width'] : 1600;
-        $quality = isset($config['img_quality']) ? $config['img_quality'] : 90;
-        $thumbWidth = isset($config['img_thumb_width']) ? $config['img_thumb_width'] : 320;
-
-        if (in_array($ext, $this->resizableExtensions)) {
-            $image = Image::make($file->getRealPath());
-            if ($image->width() > $maxWidth) {
-                $image->resize($maxWidth, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                });
-            }
-            $image->save($dir . DIRECTORY_SEPARATOR . $name, $quality);
-
-            $thumbDir = $dir . DIRECTORY_SEPARATOR . self::THUMB_DIR;
-            if (!is_dir($thumbDir)) {
-                mkdir($thumbDir, 0755, true);
-            }
-            $image->resize($thumbWidth, null, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            })->save($thumbDir . DIRECTORY_SEPARATOR . $name);
+        $image = in_array($ext, UploadGuard::RASTER, true) ? UploadGuard::compressed($file->getRealPath(), $ext) : null;
+        if ($image) {
+            $image->save($target, UploadGuard::quality());
         } else {
             $file->move($dir, $name);
         }
+        $this->writeThumb($target, $ext);
 
         return response()->json([
             'status' => true,
@@ -131,27 +151,22 @@ class FileManagerController extends Controller
             return response()->json(['status' => false, 'message' => 'This file type cannot be edited'], 422);
         }
 
-        $config = Config::get('lambda', []);
-        $maxWidth = isset($config['img_width']) ? $config['img_width'] : 1600;
-        $quality = isset($config['img_quality']) ? $config['img_quality'] : 90;
-        $thumbWidth = isset($config['img_thumb_width']) ? $config['img_thumb_width'] : 320;
+        if (UploadGuard::tooLarge($file, 'images') || !UploadGuard::imageWithinLimits($file->getRealPath())) {
+            return response()->json(['status' => false, 'message' => 'Image is too large'], 422);
+        }
 
+        // The edited image always has to be encoded; img_compress decides
+        // whether it is also scaled down and saved at img_quality.
+        $compress = UploadGuard::compressEnabled();
         $image = Image::make($file->getRealPath());
-        if ($image->width() > $maxWidth) {
+        $maxWidth = (int)config('lambda.img_width', 1600);
+        if ($compress && $maxWidth > 0 && $image->width() > $maxWidth) {
             $image->resize($maxWidth, null, function ($constraint) {
                 $constraint->aspectRatio();
             });
         }
-        $image->save($target, $quality);
-
-        $thumbDir = dirname($target) . DIRECTORY_SEPARATOR . self::THUMB_DIR;
-        if (!is_dir($thumbDir)) {
-            mkdir($thumbDir, 0755, true);
-        }
-        $image->resize($thumbWidth, null, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
-        })->save($thumbDir . DIRECTORY_SEPARATOR . basename($target));
+        $image->save($target, $compress ? UploadGuard::quality() : 100);
+        $this->writeThumb($target, $ext);
 
         $parent = dirname($path);
         $parentRel = $parent === '.' ? '' : $parent;
@@ -255,9 +270,45 @@ class FileManagerController extends Controller
             abort(404);
         }
 
-        return response()->file($absolute, [
+        $ext = strtolower(pathinfo($absolute, PATHINFO_EXTENSION));
+        $headers = [
             'Cache-Control' => 'public, max-age=604800',
-        ]);
+            'Content-Type' => self::CONTENT_TYPES[$ext] ?? 'application/octet-stream',
+            'X-Content-Type-Options' => 'nosniff',
+        ];
+        if (!isset(self::CONTENT_TYPES[$ext])) {
+            $headers['Content-Disposition'] = 'attachment';
+        }
+        if ($ext === 'svg') {
+            // Opened directly an SVG is a document: no scripts, no outside requests.
+            $headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
+        }
+
+        return response()->file($absolute, $headers);
+    }
+
+    protected function sizeGroup(string $ext): string
+    {
+        foreach (self::SIZE_GROUPS as $group => $extensions) {
+            if (in_array($ext, $extensions, true)) {
+                return $group;
+            }
+        }
+        return 'documents';
+    }
+
+    // (Re)write the thumbnail of a raster image stored at $target.
+    protected function writeThumb(string $target, string $ext): void
+    {
+        $thumb = UploadGuard::thumbnail($target, $ext);
+        if (!$thumb) {
+            return;
+        }
+        $thumbDir = dirname($target) . DIRECTORY_SEPARATOR . self::THUMB_DIR;
+        if (!is_dir($thumbDir)) {
+            mkdir($thumbDir, 0755, true);
+        }
+        $thumb->save($thumbDir . DIRECTORY_SEPARATOR . basename($target));
     }
 
     protected function fileEntry(string $path, string $name): array

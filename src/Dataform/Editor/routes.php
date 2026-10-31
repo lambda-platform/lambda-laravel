@@ -1,8 +1,13 @@
 <?php
 
+// config/lambda.php → filemanager_roles: e.g. [1, 2] limits the media library
+// (list, upload, rename, delete) to those roles. Empty: any logged-in user.
+$fileManagerRoles = (array)config('lambda.filemanager_roles', []);
+$fileManagerAuth = $fileManagerRoles ? 'jwt:' . implode(',', $fileManagerRoles) : 'jwt';
+
 Route::namespace('Lambda\Dataform\Editor')
     ->prefix('lambda/filemanager')
-    ->middleware(['api', 'jwt'])
+    ->middleware(['api', $fileManagerAuth])
     ->group(function ($router) {
         $router->get('files', 'FileManagerController@files');
         $router->post('upload', 'FileManagerController@upload');

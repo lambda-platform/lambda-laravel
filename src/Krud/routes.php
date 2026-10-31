@@ -15,14 +15,7 @@ Route::namespace('Lambda\Krud\Controllers')
         $router->post('upload-tinymce', 'KrudController@fileUploadTinyMce');
         $router->post('unique', 'KrudController@checkUnique');
         $router->post('check_current_password', 'KrudController@checkCurrentPassword')->middleware('throttle:10,1');
-        $router->post('check_current_password', 'KrudController@checkCurrentPassword')->middleware('throttle:10,1');
     });
 
-Route::namespace('Lambda\Krud\Controllers')
-    ->prefix('lambda/krud')
-    ->middleware(['api'])
-    ->group(function ($router) {
-        $router->post('upload', 'KrudController@fileUpload');
-        $router->post('upload-tinymce', 'KrudController@fileUploadTinyMce');
-        $router->post('unique', 'KrudController@checkUnique');
-    });
+// No second 'api'-only group for upload/unique here: a later registration of
+// the same URI replaces the one above, which left uploads open without login.

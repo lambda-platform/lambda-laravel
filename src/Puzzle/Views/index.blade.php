@@ -40,7 +40,7 @@
                 isset(config('lambda')['data_grid_custom_elements']) ? config('lambda')['data_grid_custom_elements'] : [],
             ) !!}
         };
-        window.lambda = {!! json_encode(config('lambda')) !!};
+        window.lambda = @json(\Lambda\PublicConfig::get());
     </script>
 
     <script src="{{ mix('assets/lambda/js/moqup.js') }}"></script>

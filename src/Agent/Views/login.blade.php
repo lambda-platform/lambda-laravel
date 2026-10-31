@@ -34,7 +34,7 @@
 </div>
 <script src="/assets/lambda/js/manifest.js"></script>
 <script>
-    window.lambda = {!! json_encode(config('lambda')) !!};
+    window.lambda = @json(\Lambda\PublicConfig::get());
 </script>
 <script src="{{ mix('assets/lambda/js/vendor.js') }}"></script>
 <script src="{{ mix('assets/lambda/js/auth.js') }}"></script>
