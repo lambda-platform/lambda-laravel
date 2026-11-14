@@ -32,10 +32,7 @@
     "wisembly/elephant.io": "^3.3",
     "barryvdh/laravel-dompdf": "^3.0",
     "rap2hpoutre/fast-excel": "^3.2",
-    "jenssegers/mongodb": "^v3.8.5",
-    "brnysn/laravel-h5p": "^1.1",
-    "h5p/h5p-core": "~1.27.0",
-    "h5p/h5p-editor": "~1.25.0"
+    "jenssegers/mongodb": "^v3.8.5"
   },
   "replace": {
     "lcobucci/jwt": "*"
